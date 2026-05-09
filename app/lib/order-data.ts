@@ -5,14 +5,22 @@ export type OrderItem = {
   productId: string;
   productName: string;
   productPrice: string;
+  selectedOption?: {
+    name: string;
+    value: string;
+  };
   quantity: number;
   totalPrice: string;
   customerName: string;
   customerPhone: string;
   customerAddress: string;
   deliveryNote?: string;
-  status: "입금대기" | "결제완료" | "배송중" | "취소";
+  status: "입금대기" | "결제완료" | "배송중" | "구매완료" | "취소";
   createdAt: string;
+  shippingInfo?: {
+    carrier: string;
+    trackingNumber: string;
+  };
   bankInfo: {
     bankName: string;
     accountNumber: string;

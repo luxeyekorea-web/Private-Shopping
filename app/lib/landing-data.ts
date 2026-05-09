@@ -8,6 +8,10 @@ export type ProductItem = {
   image: string;
   tag: string;
   active?: boolean;
+  stockQuantity: number;
+  maxOrderQuantity: number;
+  optionName: string;
+  optionValues: string[];
   paymentLink?: string;
   paymentMode: "external" | "bank-transfer";
   additionalImages: string[];
@@ -16,6 +20,15 @@ export type ProductItem = {
 };
 
 export type LandingData = {
+  access: {
+    mode: "open" | "closed";
+    inviteCode: string;
+    startDate: string;
+    endDate: string;
+  };
+  display: {
+    showStockQuantity: boolean;
+  };
   hero: {
     highlight: string;
     title: string;
@@ -48,6 +61,7 @@ export type LandingData = {
 
 const LANDING_TABLE = "landing_data";
 const LANDING_ROW_ID = "default";
+const LANDING_IMAGE_BUCKET = "landing-images";
 
 function getSupabaseErrorMessage(error: unknown) {
   if (error instanceof Error) {
@@ -70,7 +84,141 @@ function getSupabaseErrorMessage(error: unknown) {
   return "Unknown Supabase error";
 }
 
+function isDataUrl(value?: string) {
+  return Boolean(value?.startsWith("data:"));
+}
+
+function createProductId(index: number) {
+  return `product-${Date.now()}-${index}`;
+}
+
+function normalizeProductId(value: string, fallbackIndex: number) {
+  const productId = value.trim();
+  return productId || createProductId(fallbackIndex);
+}
+
+function normalizeProducts(products: ProductItem[]) {
+  const usedIds = new Set<string>();
+
+  return products.map((product, index) => {
+    const baseId = normalizeProductId(product.id || "", index);
+    const id = usedIds.has(baseId) ? `${baseId}-${index + 1}` : baseId;
+    usedIds.add(id);
+
+    return {
+      ...product,
+      id,
+      additionalImages: Array.isArray(product.additionalImages) ? product.additionalImages : [],
+      stockQuantity: Number.isFinite(Number(product.stockQuantity))
+        ? Math.max(0, Number(product.stockQuantity))
+        : 1,
+      maxOrderQuantity: Number.isFinite(Number(product.maxOrderQuantity))
+        ? Math.max(1, Number(product.maxOrderQuantity))
+        : 1,
+      optionName: typeof product.optionName === "string" ? product.optionName : "",
+      optionValues: Array.isArray(product.optionValues)
+        ? product.optionValues
+            .filter((option) => typeof option === "string")
+            .map((option) => option.trim().slice(0, 20))
+            .filter(Boolean)
+            .slice(0, 10)
+        : [],
+    };
+  });
+}
+
+function getDataUrlContentType(dataUrl: string) {
+  const match = dataUrl.match(/^data:([^;]+);base64,/);
+  return match?.[1] || "image/jpeg";
+}
+
+function getExtensionFromContentType(contentType: string) {
+  if (contentType.includes("png")) return "png";
+  if (contentType.includes("webp")) return "webp";
+  if (contentType.includes("gif")) return "gif";
+  return "jpg";
+}
+
+async function dataUrlToBlob(dataUrl: string) {
+  const response = await fetch(dataUrl);
+  return response.blob();
+}
+
+async function uploadLandingImage(dataUrl: string, pathPrefix: string) {
+  if (!supabase) {
+    throw new Error("Supabase 환경변수가 설정되지 않았습니다.");
+  }
+
+  const contentType = getDataUrlContentType(dataUrl);
+  const extension = getExtensionFromContentType(contentType);
+  const blob = await dataUrlToBlob(dataUrl);
+  const objectPath = `${pathPrefix}-${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
+  const { error } = await supabase.storage
+    .from(LANDING_IMAGE_BUCKET)
+    .upload(objectPath, blob, {
+      contentType,
+      upsert: false,
+    });
+
+  if (error) {
+    console.error("Supabase image upload failed:", error);
+    throw new Error(getSupabaseErrorMessage(error));
+  }
+
+  const { data } = supabase.storage.from(LANDING_IMAGE_BUCKET).getPublicUrl(objectPath);
+  return data.publicUrl;
+}
+
+function getLandingImageObjectPath(url?: string) {
+  if (!url || !supabase) return null;
+
+  try {
+    const pathname = new URL(url).pathname;
+    const marker = `/storage/v1/object/public/${LANDING_IMAGE_BUCKET}/`;
+    const markerIndex = pathname.indexOf(marker);
+    if (markerIndex === -1) return null;
+
+    return decodeURIComponent(pathname.slice(markerIndex + marker.length));
+  } catch {
+    return null;
+  }
+}
+
+function collectStoragePaths(data?: LandingData) {
+  if (!data) return [];
+
+  const paths = [
+    getLandingImageObjectPath(data.hero.backgroundImage),
+    ...data.products.flatMap((product) => [
+      getLandingImageObjectPath(product.image),
+      ...(product.additionalImages || []).map(getLandingImageObjectPath),
+    ]),
+  ];
+
+  return paths.filter((path): path is string => Boolean(path));
+}
+
+async function deleteLandingImages(objectPaths: string[]) {
+  if (!supabase || objectPaths.length === 0) return;
+
+  const uniquePaths = Array.from(new Set(objectPaths));
+  const { error } = await supabase.storage.from(LANDING_IMAGE_BUCKET).remove(uniquePaths);
+
+  if (error) {
+    console.error("Supabase image delete failed:", error);
+  }
+}
+
 export const defaultLandingData: LandingData = {
+  access: {
+    mode: "open",
+    inviteCode: "",
+    startDate: "",
+    endDate: "",
+  },
+  display: {
+    showStockQuantity: true,
+  },
   hero: {
     highlight: "럭셔리 아이웨어 기획전",
     title: "당신의 눈빛을 완성하는 프리미엄 아이웨어 컬렉션",
@@ -108,8 +256,12 @@ export const defaultLandingData: LandingData = {
       price: "259,000원",
       image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=800&q=80",
       tag: "럭셔리",
+      stockQuantity: 10,
+      maxOrderQuantity: 1,
+      optionName: "",
+      optionValues: [],
       paymentMode: "bank-transfer",
-        additionalImages: [],
+      additionalImages: [],
       active: true,
     },
     {
@@ -119,8 +271,12 @@ export const defaultLandingData: LandingData = {
       price: "219,000원",
       image: "https://images.unsplash.com/photo-1521334884684-d80222895322?auto=format&fit=crop&w=800&q=80",
       tag: "럭셔리",
+      stockQuantity: 10,
+      maxOrderQuantity: 1,
+      optionName: "",
+      optionValues: [],
       paymentMode: "bank-transfer",
-        additionalImages: [],
+      additionalImages: [],
       active: true,
     },
     {
@@ -130,8 +286,12 @@ export const defaultLandingData: LandingData = {
       price: "289,000원",
       image: "https://images.unsplash.com/photo-1562158074-9b1470a2865d?auto=format&fit=crop&w=800&q=80",
       tag: "럭셔리",
+      stockQuantity: 10,
+      maxOrderQuantity: 1,
+      optionName: "",
+      optionValues: [],
       paymentMode: "bank-transfer",
-        additionalImages: [],
+      additionalImages: [],
       active: true,
     },
     {
@@ -141,8 +301,12 @@ export const defaultLandingData: LandingData = {
       price: "239,000원",
       image: "https://images.unsplash.com/photo-1511367461989-f85a21fda167?auto=format&fit=crop&w=800&q=80",
       tag: "럭셔리",
+      stockQuantity: 10,
+      maxOrderQuantity: 1,
+      optionName: "",
+      optionValues: [],
       paymentMode: "bank-transfer",
-        additionalImages: [],
+      additionalImages: [],
       active: true,
     },
     {
@@ -152,8 +316,12 @@ export const defaultLandingData: LandingData = {
       price: "249,000원",
       image: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&w=800&q=80",
       tag: "럭셔리",
+      stockQuantity: 10,
+      maxOrderQuantity: 1,
+      optionName: "",
+      optionValues: [],
       paymentMode: "bank-transfer",
-        additionalImages: [],
+      additionalImages: [],
       active: true,
     },
     {
@@ -163,8 +331,12 @@ export const defaultLandingData: LandingData = {
       price: "279,000원",
       image: "https://images.unsplash.com/photo-1510511459019-5dda7724fd87?auto=format&fit=crop&w=800&q=80",
       tag: "럭셔리",
+      stockQuantity: 10,
+      maxOrderQuantity: 1,
+      optionName: "",
+      optionValues: [],
       paymentMode: "bank-transfer",
-        additionalImages: [],
+      additionalImages: [],
       active: true,
     },
   ],
@@ -196,6 +368,14 @@ export async function loadLandingData(): Promise<LandingData> {
     return {
       ...defaultLandingData,
       ...parsed,
+      access: {
+        ...defaultLandingData.access,
+        ...parsed.access,
+      },
+      display: {
+        ...defaultLandingData.display,
+        ...parsed.display,
+      },
       section: {
         ...defaultLandingData.section,
         ...parsed.section,
@@ -204,7 +384,9 @@ export async function loadLandingData(): Promise<LandingData> {
         ...defaultLandingData.footer,
         ...parsed.footer,
       },
-      products: Array.isArray(parsed.products) ? parsed.products : defaultLandingData.products,
+      products: Array.isArray(parsed.products)
+        ? normalizeProducts(parsed.products)
+        : defaultLandingData.products,
     };
   } catch (error) {
     console.error("Supabase landing load failed:", error);
@@ -212,20 +394,64 @@ export async function loadLandingData(): Promise<LandingData> {
   }
 }
 
-async function preparePersistableData(data: LandingData) {
-  return data;
+async function preparePersistableData(data: LandingData, previousData?: LandingData) {
+  const heroBackgroundImage = isDataUrl(data.hero.backgroundImage)
+    ? await uploadLandingImage(data.hero.backgroundImage || "", "hero/background")
+    : data.hero.backgroundImage;
+
+  const normalizedProducts = normalizeProducts(data.products);
+
+  const products = await Promise.all(
+    normalizedProducts.map(async (product) => {
+      const productPath = `products/${product.id}`;
+      const image = isDataUrl(product.image)
+        ? await uploadLandingImage(product.image, `${productPath}/main`)
+        : product.image;
+
+      const additionalImages = await Promise.all(
+        (product.additionalImages || []).map((imageValue, imageIndex) =>
+          isDataUrl(imageValue)
+            ? uploadLandingImage(imageValue, `${productPath}/additional-${imageIndex + 1}`)
+            : Promise.resolve(imageValue),
+        ),
+      );
+
+      return {
+        ...product,
+        image,
+        additionalImages,
+      };
+    }),
+  );
+
+  const persistable = {
+    ...data,
+    hero: {
+      ...data.hero,
+      backgroundImage: heroBackgroundImage,
+    },
+    products,
+  };
+
+  const currentPaths = new Set(collectStoragePaths(persistable));
+  const pendingDeletePaths = collectStoragePaths(previousData).filter((path) => !currentPaths.has(path));
+
+  return {
+    persistable,
+    pendingDeletePaths,
+  };
 }
 
-export async function saveLandingData(data: LandingData) {
+export async function saveLandingData(data: LandingData, previousData?: LandingData) {
   if (typeof window === "undefined") {
-    return;
+    return data;
   }
 
   if (!isSupabaseReady) {
     throw new Error("Supabase 환경변수가 설정되지 않았습니다.");
   }
 
-  const persistable = await preparePersistableData(data);
+  const { persistable, pendingDeletePaths } = await preparePersistableData(data, previousData);
   const { error } = await supabase!
     .from(LANDING_TABLE)
     .upsert({ id: LANDING_ROW_ID, payload: persistable }, { onConflict: "id" });
@@ -234,4 +460,7 @@ export async function saveLandingData(data: LandingData) {
     console.error("Supabase landing save failed:", error);
     throw new Error(getSupabaseErrorMessage(error));
   }
+
+  await deleteLandingImages(pendingDeletePaths);
+  return persistable;
 }

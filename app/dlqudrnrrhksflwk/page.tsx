@@ -14,6 +14,12 @@ const validateLandingData = (value: unknown): value is LandingData => {
   const cast = value as LandingData;
   return (
     typeof cast.hero?.highlight === "string" &&
+    (cast.access === undefined ||
+      (typeof cast.access?.mode === "string" &&
+        typeof cast.access?.inviteCode === "string" &&
+        typeof cast.access?.startDate === "string" &&
+        typeof cast.access?.endDate === "string")) &&
+    (cast.display === undefined || typeof cast.display?.showStockQuantity === "boolean") &&
     typeof cast.hero?.title === "string" &&
     typeof cast.hero?.subtitle === "string" &&
     typeof cast.hero?.ctaMain === "string" &&
@@ -47,23 +53,44 @@ const getErrorMessage = (error: unknown) => {
   return "알 수 없는 오류가 발생했습니다.";
 };
 
+const toDateTimeLocalValue = (value: string, edge: "start" | "end") => {
+  if (!value) return "";
+  if (value.includes("T")) return value.slice(0, 16);
+  return `${value}T${edge === "start" ? "00:00" : "23:59"}`;
+};
+
 export default function AdminPage() {
   const [data, setData] = useState<LandingData>(defaultLandingData);
+  const [lastSavedData, setLastSavedData] = useState<LandingData>(defaultLandingData);
+  const [isLandingDataLoading, setIsLandingDataLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [jsonInput, setJsonInput] = useState("");
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [sectionsOpen, setSectionsOpen] = useState({
-    banner: true,
-    products: true,
-    footer: true,
-    backup: true,
+    banner: false,
+    access: false,
+    products: false,
+    footer: false,
+    backup: false,
   });
   const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
+  const [expandedOptionProduct, setExpandedOptionProduct] = useState<string | null>(null);
+  const hasUnsavedChanges = JSON.stringify(data) !== JSON.stringify(lastSavedData);
 
   useEffect(() => {
-    loadLandingData().then(setData).catch(() => setData(defaultLandingData));
+    loadLandingData()
+      .then((loadedData) => {
+        setData(loadedData);
+        setLastSavedData(loadedData);
+      })
+      .catch(() => {
+        setData(defaultLandingData);
+        setLastSavedData(defaultLandingData);
+      })
+      .finally(() => setIsLandingDataLoading(false));
   }, []);
 
   const updateHeroField = (field: keyof LandingData["hero"], value: string) => {
@@ -71,6 +98,32 @@ export default function AdminPage() {
       ...prev,
       hero: {
         ...prev.hero,
+        [field]: value,
+      },
+    }));
+  };
+
+  const updateAccessField = <T extends keyof LandingData["access"]>(
+    field: T,
+    value: LandingData["access"][T],
+  ) => {
+    setData((prev) => ({
+      ...prev,
+      access: {
+        ...prev.access,
+        [field]: value,
+      },
+    }));
+  };
+
+  const updateDisplayField = <T extends keyof LandingData["display"]>(
+    field: T,
+    value: LandingData["display"][T],
+  ) => {
+    setData((prev) => ({
+      ...prev,
+      display: {
+        ...prev.display,
         [field]: value,
       },
     }));
@@ -164,6 +217,10 @@ export default function AdminPage() {
           price: "0원",
           image: "",
           tag: "럭셔리",
+          stockQuantity: 10,
+          maxOrderQuantity: 1,
+          optionName: "",
+          optionValues: [],
           paymentMode: "bank-transfer",
           additionalImages: [],
           active: true,
@@ -178,6 +235,7 @@ export default function AdminPage() {
         ...prev.products[index],
         id: `clone-${Date.now()}`,
         additionalImages: [...prev.products[index].additionalImages],
+        optionValues: [...(prev.products[index].optionValues || [])],
       };
       const products = [...prev.products];
       products.splice(index + 1, 0, cloned);
@@ -245,6 +303,46 @@ export default function AdminPage() {
     setExpandedProduct((prev) => (prev === productId ? null : productId));
   };
 
+  const toggleProductOptionExpand = (productId: string) => {
+    setExpandedOptionProduct((prev) => (prev === productId ? null : productId));
+  };
+
+  const updateProductOptionValue = (index: number, optionIndex: number, value: string) => {
+    setData((prev) => {
+      const products = [...prev.products];
+      const product = { ...products[index] };
+      const optionValues = [...(product.optionValues || [])];
+      optionValues[optionIndex] = value.slice(0, 20);
+      product.optionValues = optionValues;
+      products[index] = product;
+      return { ...prev, products };
+    });
+  };
+
+  const addProductOptionValue = (index: number) => {
+    setData((prev) => {
+      const products = [...prev.products];
+      const product = { ...products[index] };
+      const optionValues = [...(product.optionValues || [])].slice(0, 10);
+      if (optionValues.length >= 10) return prev;
+      optionValues.push("");
+      product.optionValues = optionValues;
+      if (!product.optionName) product.optionName = "옵션";
+      products[index] = product;
+      return { ...prev, products };
+    });
+  };
+
+  const removeProductOptionValue = (index: number, optionIndex: number) => {
+    setData((prev) => {
+      const products = [...prev.products];
+      const product = { ...products[index] };
+      product.optionValues = [...(product.optionValues || [])].filter((_, currentIndex) => currentIndex !== optionIndex);
+      products[index] = product;
+      return { ...prev, products };
+    });
+  };
+
   const removeProduct = (index: number) => {
     setData((prev) => ({
       ...prev,
@@ -268,27 +366,41 @@ export default function AdminPage() {
   };
 
   const handleSave = async () => {
+    if (isSaving) return;
+
+    setIsSaving(true);
     try {
-      await saveLandingData(data);
+      const savedData = await saveLandingData(data, lastSavedData);
+      setData(savedData);
+      setLastSavedData(savedData);
       setSaveError(null);
       setSaved(true);
       window.setTimeout(() => setSaved(false), 1800);
     } catch (error) {
       console.error(error);
       setSaveError(`저장 중 오류가 발생했습니다: ${getErrorMessage(error)}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleReset = async () => {
+    if (isSaving) return;
+
+    setIsSaving(true);
     setData(defaultLandingData);
     try {
-      await saveLandingData(defaultLandingData);
+      const savedData = await saveLandingData(defaultLandingData, lastSavedData);
+      setData(savedData);
+      setLastSavedData(savedData);
       setSaveError(null);
       setSaved(true);
       window.setTimeout(() => setSaved(false), 1800);
     } catch (error) {
       console.error(error);
       setSaveError(`저장 중 오류가 발생했습니다: ${getErrorMessage(error)}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -322,7 +434,18 @@ export default function AdminPage() {
         setImportError("유효하지 않은 데이터 형식입니다.");
         return;
       }
-      setData(parsed);
+      setData({
+        ...defaultLandingData,
+        ...parsed,
+        access: {
+          ...defaultLandingData.access,
+          ...parsed.access,
+        },
+        display: {
+          ...defaultLandingData.display,
+          ...parsed.display,
+        },
+      });
       setImportError(null);
       setJsonInput("");
     } catch {
@@ -330,30 +453,31 @@ export default function AdminPage() {
     }
   };
 
-  const applyTemplate = () => {
-    setData((prev) => ({
-      ...prev,
-      products: [
-        ...prev.products,
-        {
-          id: `template-${Date.now()}`,
-          name: "템플릿 상품",
-          description: "빠르게 추가할 수 있는 기본 템플릿 상품입니다.",
-          price: "199,000원",
-          image: "",
-          tag: "럭셔리",
-          paymentMode: "bank-transfer",
-          additionalImages: [],
-          active: true,
-        },
-      ],
-    }));
-  };
-
   const activeProductCount = data.products.filter((product) => product.active !== false).length;
+
+  if (isLandingDataLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-white">
+        <div className="h-10 w-10 rounded-full border border-white/20 border-t-white animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 px-6 py-8 text-white sm:px-10">
+      {(isSaving || saved || saveError) && (
+        <div
+          className={`fixed right-4 top-4 z-[100] max-w-sm rounded-3xl border px-5 py-4 text-sm font-semibold shadow-2xl shadow-black/40 backdrop-blur sm:right-8 sm:top-8 ${
+            isSaving
+              ? "border-sky-300/30 bg-sky-500/15 text-sky-100"
+              : saved
+                ? "border-emerald-300/30 bg-emerald-500/15 text-emerald-100"
+                : "border-rose-300/30 bg-rose-500/15 text-rose-100"
+          }`}
+        >
+          {isSaving ? "저장 중입니다. 이미지 업로드가 끝날 때까지 기다려주세요." : saved ? "변경 내용이 저장되었습니다." : saveError}
+        </div>
+      )}
       <div className="mx-auto max-w-5xl space-y-6">
         <div className="rounded-4xl border border-white/10 bg-white/5 p-6 shadow-2xl shadow-black/30 sm:p-8">
           <div className="mb-8 sticky top-6 z-50 rounded-4xl bg-zinc-950/95 p-5 backdrop-blur-xl shadow-2xl shadow-black/30">
@@ -366,7 +490,7 @@ export default function AdminPage() {
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Link
-                  href="/admin/orders"
+                  href="/dlqudrnrrhksflwk/orders"
                   className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
                 >
                   주문 관리 페이지로 이동
@@ -374,20 +498,27 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="inline-flex cursor-pointer items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-100 hover:cursor-pointer"
+                  disabled={isSaving}
+                  className="inline-flex min-w-30 cursor-pointer items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-100 hover:cursor-pointer disabled:cursor-wait disabled:bg-white/30 disabled:text-white/50"
                 >
-                  저장하기
+                  {isSaving ? "저장 중..." : hasUnsavedChanges ? "변경사항 저장" : "저장하기"}
                 </button>
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                  disabled={isSaving}
+                  className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   기본값 복원
                 </button>
               </div>
             </div>
 
+            {hasUnsavedChanges && !isSaving && (
+              <div className="mt-5 rounded-3xl border border-amber-300/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                저장하지 않은 변경사항이 있습니다.
+              </div>
+            )}
             {saved && (
               <div className="mt-5 rounded-3xl border border-emerald-300/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
                 변경 내용이 저장되었습니다.
@@ -408,6 +539,11 @@ export default function AdminPage() {
               >
                 배너 / CTA 설정 {sectionsOpen.banner ? "▼" : "▶"}
               </h2>
+              {!sectionsOpen.banner && (
+                <p className="mt-2 text-sm leading-6 text-white/60">
+                  첫 화면 배경 이미지, 상단 문구, 상품 섹션 제목과 설명을 수정합니다.
+                </p>
+              )}
               {sectionsOpen.banner && (
                 <div className="mt-6 space-y-5">
                   <div className="space-y-2 text-sm text-white/80">
@@ -499,6 +635,116 @@ export default function AdminPage() {
             </div>
 
             <div className="rounded-4xl border border-white/10 bg-zinc-950/30 p-6">
+              <h2
+                className="text-xl font-semibold cursor-pointer"
+                onClick={() => setSectionsOpen((prev) => ({ ...prev, access: !prev.access }))}
+              >
+                접근 설정 {sectionsOpen.access ? "▼" : "▶"}
+              </h2>
+              {!sectionsOpen.access && (
+                <p className="mt-2 text-sm leading-6 text-white/60">
+                  현재 {data.access.mode === "open" ? "오픈형" : "폐쇄형"}입니다. 초대코드, 이용 기간, 재고 표시 여부를 관리합니다.
+                </p>
+              )}
+              {sectionsOpen.access && (
+                <div className="mt-6 space-y-5">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => updateAccessField("mode", "open")}
+                      className={`rounded-3xl px-5 py-4 text-sm font-semibold transition ${
+                        data.access.mode === "open"
+                          ? "border border-emerald-300/30 bg-emerald-500/20 text-emerald-100"
+                          : "border border-white/15 bg-white/5 text-white/60 hover:bg-white/10"
+                      }`}
+                    >
+                      오픈형
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateAccessField("mode", "closed")}
+                      className={`rounded-3xl px-5 py-4 text-sm font-semibold transition ${
+                        data.access.mode === "closed"
+                          ? "border border-blue-300/30 bg-blue-500/20 text-blue-100"
+                          : "border border-white/15 bg-white/5 text-white/60 hover:bg-white/10"
+                      }`}
+                    >
+                      폐쇄형
+                    </button>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <label className="space-y-2 text-sm text-white/80">
+                      초대코드
+                      <input
+                        type="text"
+                        value={data.access.inviteCode}
+                        onChange={(event) => updateAccessField("inviteCode", event.target.value)}
+                        className="w-full rounded-3xl border border-white/10 bg-zinc-950/50 px-4 py-3 text-white outline-none transition focus:border-white/30"
+                        placeholder="예: PRIVATE2026"
+                      />
+                    </label>
+                    <label className="space-y-2 text-sm text-white/80">
+                      시작일 / 시간
+                      <input
+                        type="datetime-local"
+                        value={toDateTimeLocalValue(data.access.startDate, "start")}
+                        onChange={(event) => updateAccessField("startDate", event.target.value)}
+                        className="w-full rounded-3xl border border-white/10 bg-zinc-950/50 px-4 py-3 text-white outline-none transition focus:border-white/30"
+                      />
+                    </label>
+                    <label className="space-y-2 text-sm text-white/80">
+                      종료일 / 시간
+                      <input
+                        type="datetime-local"
+                        value={toDateTimeLocalValue(data.access.endDate, "end")}
+                        onChange={(event) => updateAccessField("endDate", event.target.value)}
+                        className="w-full rounded-3xl border border-white/10 bg-zinc-950/50 px-4 py-3 text-white outline-none transition focus:border-white/30"
+                      />
+                    </label>
+                  </div>
+
+                  <p className="text-sm leading-6 text-white/60">
+                    폐쇄형으로 설정하면 설정한 기간 안에 초대코드를 입력한 사용자만 랜딩페이지를 이용할 수 있습니다.
+                  </p>
+
+                  <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-white">상품 재고 수량 표시</p>
+                        <p className="mt-1 text-sm text-white/60">랜딩 페이지 상품 카드와 상세 화면에 남은 수량을 표시합니다.</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => updateDisplayField("showStockQuantity", true)}
+                          className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                            data.display.showStockQuantity
+                              ? "bg-white text-zinc-950"
+                              : "border border-white/15 bg-white/5 text-white/60 hover:bg-white/10"
+                          }`}
+                        >
+                          ON
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateDisplayField("showStockQuantity", false)}
+                          className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                            !data.display.showStockQuantity
+                              ? "bg-white text-zinc-950"
+                              : "border border-white/15 bg-white/5 text-white/60 hover:bg-white/10"
+                          }`}
+                        >
+                          OFF
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-4xl border border-white/10 bg-zinc-950/30 p-6">
               <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2
@@ -507,7 +753,11 @@ export default function AdminPage() {
                   >
                     상품 목록 {sectionsOpen.products ? "▼" : "▶"}
                   </h2>
-                  <p className="text-sm text-white/60">버튼으로 순서를 변경하고, 복제/삭제가 가능합니다.</p>
+                  <p className="text-sm text-white/60">
+                    {sectionsOpen.products
+                      ? "버튼으로 순서를 변경하고, 복제/삭제가 가능합니다."
+                      : `총 ${data.products.length}개 상품, 활성 ${activeProductCount}개입니다. 상품 이미지, 가격, 재고, 최대 주문수량을 관리합니다.`}
+                  </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <button
@@ -517,13 +767,6 @@ export default function AdminPage() {
                   >
                     상품 추가
                   </button>
-                  <button
-                    type="button"
-                    onClick={applyTemplate}
-                    className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white transition hover:bg-white/10"
-                  >
-                    템플릿 추가
-                  </button>
                 </div>
               </div>
 
@@ -531,10 +774,11 @@ export default function AdminPage() {
                 <div className="space-y-3">
                   {data.products.map((product, index) => {
                     const isExpanded = expandedProduct === product.id;
+                    const isSoldOut = Math.max(0, Number(product.stockQuantity) || 0) <= 0;
                     return (
-                      <div key={product.id} className="rounded-3xl border border-white/10 bg-white/5 overflow-hidden transition">
+                      <div key={product.id} className={`rounded-3xl border bg-white/5 overflow-hidden transition ${isSoldOut ? "border-rose-300/20" : "border-white/10"}`}>
                         <div
-                          className="p-4 flex items-center gap-3 justify-between hover:bg-white/10 transition"
+                          className="flex items-center gap-3 justify-between p-3 transition hover:bg-white/10 sm:p-4"
                         >
                           <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onClick={() => toggleProductExpand(product.id)}>
                             {product.image && (
@@ -545,12 +789,21 @@ export default function AdminPage() {
                               />
                             )}
                             <div className="min-w-0 flex-1">
-                              <h3 className="font-semibold text-white truncate">{product.name}</h3>
-                              <p className="text-xs text-white/50">{product.price}</p>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="font-semibold text-white truncate">{product.name}</h3>
+                                {isSoldOut && (
+                                  <span className="rounded-full border border-rose-300/30 bg-rose-500/15 px-2 py-0.5 text-[10px] font-semibold text-rose-100">
+                                    품절
+                                  </span>
+                                )}
+                              </div>
+                              <p className="mt-1 text-xs text-white/50">
+                                {product.tag} · {product.price} · {isSoldOut ? "품절" : `${Math.max(0, Number(product.stockQuantity) || 0)}개 남음`} · 최대 {Math.max(1, Number(product.maxOrderQuantity) || 1)}개
+                              </p>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
                             <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] text-white/60">
                               {index + 1}
                             </span>
@@ -621,7 +874,16 @@ export default function AdminPage() {
                         {isExpanded && (
                           <div className="border-t border-white/10 bg-zinc-950/50 p-4 space-y-4">
                             <div className="space-y-4">
-                              <div className="grid gap-3 sm:grid-cols-3">
+                              <div className="grid gap-3 sm:grid-cols-5">
+                                <label className="space-y-1 text-sm text-white/80">
+                                  <span className="text-xs">태그</span>
+                                  <input
+                                    type="text"
+                                    value={product.tag}
+                                    onChange={(event) => updateProductField(index, "tag", event.target.value)}
+                                    className="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-white/30"
+                                  />
+                                </label>
                                 <label className="space-y-1 text-sm text-white/80">
                                   <span className="text-xs">상품명</span>
                                   <input
@@ -641,17 +903,143 @@ export default function AdminPage() {
                                   />
                                 </label>
                                 <label className="space-y-1 text-sm text-white/80">
-                                  <span className="text-xs">태그</span>
+                                  <span className="text-xs">재고수량</span>
                                   <input
-                                    type="text"
-                                    value={product.tag}
-                                    onChange={(event) => updateProductField(index, "tag", event.target.value)}
+                                    type="number"
+                                    min={0}
+                                    value={Math.max(0, Number(product.stockQuantity) || 0)}
+                                    onChange={(event) =>
+                                      updateProductField(index, "stockQuantity", Math.max(0, Number(event.target.value) || 0))
+                                    }
+                                    className="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-white/30"
+                                  />
+                                </label>
+                                <label className="space-y-1 text-sm text-white/80">
+                                  <span className="text-xs">최대주문수량</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={Math.max(1, Number(product.maxOrderQuantity) || 1)}
+                                    onChange={(event) =>
+                                      updateProductField(index, "maxOrderQuantity", Math.max(1, Number(event.target.value) || 1))
+                                    }
                                     className="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-white/30"
                                   />
                                 </label>
                               </div>
 
+                              <label className="space-y-1 text-sm text-white/80">
+                                <span className="text-xs">상품 설명</span>
+                                <textarea
+                                  rows={2}
+                                  value={product.description}
+                                  onChange={(event) => updateProductField(index, "description", event.target.value)}
+                                  className="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-white/30"
+                                />
+                              </label>
+
+                              <div className="rounded-2xl border border-white/10 bg-zinc-950/50">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleProductOptionExpand(product.id)}
+                                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                                >
+                                  <div>
+                                    <p className="text-sm font-semibold text-white">주문 옵션</p>
+                                    <p className="mt-1 text-xs text-white/50">
+                                      {(product.optionValues || []).filter(Boolean).length > 0
+                                        ? `${product.optionName || "옵션"} · ${(product.optionValues || []).filter(Boolean).length}개`
+                                        : "색상, 사이즈처럼 고객이 선택할 옵션을 최대 10개까지 설정합니다."}
+                                    </p>
+                                  </div>
+                                  <span className="text-xl text-white">
+                                    {expandedOptionProduct === product.id ? "▲" : "▼"}
+                                  </span>
+                                </button>
+
+                                {expandedOptionProduct === product.id && (
+                                  <div className="space-y-3 border-t border-white/10 p-4">
+                                    <label className="space-y-1 text-sm text-white/80">
+                                      <span className="text-xs">옵션명</span>
+                                      <input
+                                        type="text"
+                                        maxLength={20}
+                                        value={product.optionName || ""}
+                                        onChange={(event) => updateProductField(index, "optionName", event.target.value.slice(0, 20))}
+                                        className="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-white/30"
+                                        placeholder="예: 색상, 사이즈"
+                                      />
+                                    </label>
+
+                                    <div className="space-y-2">
+                                      <div className="flex items-center justify-between gap-3">
+                                        <span className="text-xs font-semibold text-white/80">옵션값</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => addProductOptionValue(index)}
+                                          disabled={(product.optionValues || []).length >= 10}
+                                          className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                                        >
+                                          옵션 추가
+                                        </button>
+                                      </div>
+                                      <div className="grid gap-2 sm:grid-cols-2">
+                                        {(product.optionValues || []).map((option, optionIndex) => (
+                                          <div key={optionIndex} className="flex gap-2">
+                                            <input
+                                              type="text"
+                                              maxLength={20}
+                                              value={option}
+                                              onChange={(event) => updateProductOptionValue(index, optionIndex, event.target.value)}
+                                              className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-white/30"
+                                              placeholder={`옵션 ${optionIndex + 1}`}
+                                            />
+                                            <button
+                                              type="button"
+                                              onClick={() => removeProductOptionValue(index, optionIndex)}
+                                              className="rounded-2xl border border-rose-300/30 bg-rose-500/10 px-3 text-xs font-semibold text-rose-100 transition hover:bg-rose-500/20"
+                                            >
+                                              삭제
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      {(product.optionValues || []).length === 0 && (
+                                        <p className="rounded-2xl border border-dashed border-white/10 bg-white/5 px-3 py-3 text-xs text-white/50">
+                                          옵션을 사용하지 않으면 고객 주문 화면에 옵션 선택 영역이 표시되지 않습니다.
+                                        </p>
+                                      )}
+                                      <p className="text-xs text-white/45">옵션값은 20자까지, 최대 10개까지 입력할 수 있습니다.</p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
                               <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="space-y-2">
+                                  <span className="text-xs font-semibold text-white/80">상품 이미지</span>
+                                  <label
+                                    onDragOver={(event) => event.preventDefault()}
+                                    onDrop={(event) => handleImageDrop(index, event)}
+                                    className="block rounded-2xl border border-dashed border-white/20 bg-zinc-950/40 p-2 text-center cursor-pointer transition hover:border-white/40 h-20"
+                                  >
+                                    {product.image ? (
+                                      <img src={product.image} alt={product.name} className="mx-auto h-full w-full rounded-2xl object-cover" />
+                                    ) : (
+                                      <div className="flex h-full items-center justify-center text-xs text-white/50">클릭하여 업로드</div>
+                                    )}
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={(event) => {
+                                        const file = event.target.files?.[0];
+                                        if (file) handleImageFile(index, file);
+                                      }}
+                                      className="hidden"
+                                    />
+                                  </label>
+                                </div>
+
                                 <div className="space-y-2">
                                   <span className="text-xs font-semibold text-white/80">결제 방식</span>
                                   <div className="flex gap-2">
@@ -679,41 +1067,7 @@ export default function AdminPage() {
                                     </button>
                                   </div>
                                 </div>
-
-                                <div className="space-y-2">
-                                  <span className="text-xs font-semibold text-white/80">상품 이미지</span>
-                                  <label
-                                    onDragOver={(event) => event.preventDefault()}
-                                    onDrop={(event) => handleImageDrop(index, event)}
-                                    className="block rounded-2xl border border-dashed border-white/20 bg-zinc-950/40 p-2 text-center cursor-pointer transition hover:border-white/40 h-20"
-                                  >
-                                    {product.image ? (
-                                      <img src={product.image} alt={product.name} className="mx-auto h-full w-full rounded-2xl object-cover" />
-                                    ) : (
-                                      <div className="flex h-full items-center justify-center text-xs text-white/50">클릭하여 업로드</div>
-                                    )}
-                                    <input
-                                      type="file"
-                                      accept="image/*"
-                                      onChange={(event) => {
-                                        const file = event.target.files?.[0];
-                                        if (file) handleImageFile(index, file);
-                                      }}
-                                      className="hidden"
-                                    />
-                                  </label>
-                                </div>
                               </div>
-
-                              <label className="space-y-1 text-sm text-white/80">
-                                <span className="text-xs">상품 설명</span>
-                                <textarea
-                                  rows={2}
-                                  value={product.description}
-                                  onChange={(event) => updateProductField(index, "description", event.target.value)}
-                                  className="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-white/30"
-                                />
-                              </label>
 
                               {product.paymentMode === "external" && (
                                 <label className="space-y-1 text-sm text-white/80">
@@ -789,7 +1143,11 @@ export default function AdminPage() {
                 >
                   푸터 정보 {sectionsOpen.footer ? "▼" : "▶"}
                 </h2>
-                <p className="text-sm text-white/60">하단 사업자 정보와 고객센터 정보를 입력하세요.</p>
+                <p className="text-sm text-white/60">
+                  {sectionsOpen.footer
+                    ? "하단 사업자 정보와 고객센터 정보를 입력하세요."
+                    : "랜딩페이지 하단에 노출되는 회사 정보, 고객센터, 무통장 입금 계좌를 관리합니다."}
+                </p>
               </div>
               {sectionsOpen.footer && (
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -981,6 +1339,11 @@ export default function AdminPage() {
                 >
                   데이터 백업 / 복원 {sectionsOpen.backup ? "▼" : "▶"}
                 </h2>
+                {!sectionsOpen.backup && (
+                  <p className="w-full text-sm leading-6 text-white/60 sm:w-auto">
+                    현재 설정을 JSON으로 보관하거나, 백업한 JSON을 다시 가져옵니다.
+                  </p>
+                )}
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     type="button"
