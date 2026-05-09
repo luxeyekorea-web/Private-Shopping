@@ -35,6 +35,18 @@ const validateLandingData = (value: unknown): value is LandingData => {
   );
 };
 
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  return "알 수 없는 오류가 발생했습니다.";
+};
+
 export default function AdminPage() {
   const [data, setData] = useState<LandingData>(defaultLandingData);
   const [saved, setSaved] = useState(false);
@@ -263,7 +275,7 @@ export default function AdminPage() {
       window.setTimeout(() => setSaved(false), 1800);
     } catch (error) {
       console.error(error);
-      setSaveError("저장 중 오류가 발생했습니다. 이미지 크기를 줄이고 다시 시도하세요.");
+      setSaveError(`저장 중 오류가 발생했습니다: ${getErrorMessage(error)}`);
     }
   };
 
@@ -276,7 +288,7 @@ export default function AdminPage() {
       window.setTimeout(() => setSaved(false), 1800);
     } catch (error) {
       console.error(error);
-      setSaveError("저장 중 오류가 발생했습니다. 이미지 크기를 줄이고 다시 시도하세요.");
+      setSaveError(`저장 중 오류가 발생했습니다: ${getErrorMessage(error)}`);
     }
   };
 

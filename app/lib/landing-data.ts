@@ -49,6 +49,27 @@ export type LandingData = {
 const LANDING_TABLE = "landing_data";
 const LANDING_ROW_ID = "default";
 
+function getSupabaseErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (error && typeof error === "object") {
+    const parts = [
+      "message" in error && typeof error.message === "string" ? error.message : null,
+      "details" in error && typeof error.details === "string" ? error.details : null,
+      "hint" in error && typeof error.hint === "string" ? error.hint : null,
+      "code" in error && typeof error.code === "string" ? `code: ${error.code}` : null,
+    ].filter(Boolean);
+
+    if (parts.length > 0) {
+      return parts.join(" ");
+    }
+  }
+
+  return "Unknown Supabase error";
+}
+
 export const defaultLandingData: LandingData = {
   hero: {
     highlight: "럭셔리 아이웨어 기획전",
@@ -201,7 +222,7 @@ export async function saveLandingData(data: LandingData) {
   }
 
   if (!isSupabaseReady) {
-    throw new Error("Supabase environment variables are not configured.");
+    throw new Error("Supabase 환경변수가 설정되지 않았습니다.");
   }
 
   const persistable = await preparePersistableData(data);
@@ -211,6 +232,6 @@ export async function saveLandingData(data: LandingData) {
 
   if (error) {
     console.error("Supabase landing save failed:", error);
-    throw error;
+    throw new Error(getSupabaseErrorMessage(error));
   }
 }
