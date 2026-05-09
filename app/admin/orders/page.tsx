@@ -18,9 +18,12 @@ export default function AdminOrdersPage() {
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = loadOrders();
-    setOrders(stored);
-    setFiltered(stored);
+    const load = async () => {
+      const stored = await loadOrders();
+      setOrders(stored);
+      setFiltered(stored);
+    };
+    load();
   }, []);
 
   const handleSearch = () => {
@@ -37,16 +40,16 @@ export default function AdminOrdersPage() {
     );
   };
 
-  const handleStatusChange = (orderId: string, status: OrderItem["status"]) => {
+  const handleStatusChange = async (orderId: string, status: OrderItem["status"]) => {
     const next = orders.map((order) => (order.id === orderId ? { ...order, status } : order));
-    updateOrder(next.find((order) => order.id === orderId)!);
+    await updateOrder(next.find((order) => order.id === orderId)!);
     setOrders(next);
     setFiltered((prev) => prev.map((order) => (order.id === orderId ? { ...order, status } : order)));
     setMessage("주문 상태가 저장되었습니다.");
   };
 
-  const handleDelete = (orderId: string) => {
-    deleteOrder(orderId);
+  const handleDelete = async (orderId: string) => {
+    await deleteOrder(orderId);
     const next = orders.filter((order) => order.id !== orderId);
     setOrders(next);
     setFiltered((prev) => prev.filter((order) => order.id !== orderId));

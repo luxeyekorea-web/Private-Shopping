@@ -1,4 +1,4 @@
-import { getImage, saveImage } from "./image-db";
+import { isSupabaseReady, supabase } from "./supabase-client";
 
 export type ProductItem = {
   id: string;
@@ -46,7 +46,8 @@ export type LandingData = {
   products: ProductItem[];
 };
 
-const STORAGE_KEY = "lux-eyewear-landing-data";
+const LANDING_TABLE = "landing_data";
+const LANDING_ROW_ID = "default";
 
 export const defaultLandingData: LandingData = {
   hero: {
@@ -153,131 +154,45 @@ export async function loadLandingData(): Promise<LandingData> {
     return defaultLandingData;
   }
 
+  if (!isSupabaseReady) {
+    console.error("Supabase environment variables are not configured.");
+    return defaultLandingData;
+  }
+
   try {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (!saved) {
+    const { data, error } = await supabase!
+      .from(LANDING_TABLE)
+      .select("payload")
+      .eq("id", LANDING_ROW_ID)
+      .single();
+
+    if (error || !data?.payload) {
+      if (error) console.error("Supabase landing load failed:", error);
       return defaultLandingData;
     }
 
-    const parsed = JSON.parse(saved) as LandingData;
-    if (!parsed || !parsed.hero || !Array.isArray(parsed.products)) {
-      return defaultLandingData;
-    }
-
-    const products = await Promise.all(
-      parsed.products.map(async (product) => {
-        const hydrated = await hydrateProductImages({
-          ...product,
-          active: product.active !== false,
-          paymentLink: product.paymentLink || "",
-          paymentMode: product.paymentMode || "bank-transfer",
-          additionalImages: Array.isArray(product.additionalImages)
-            ? product.additionalImages.map((item) => String(item))
-            : [],
-          imageKey: product.imageKey,
-          additionalImageKeys: Array.isArray(product.additionalImageKeys)
-            ? product.additionalImageKeys.map((item) => (item === null ? null : String(item)))
-            : [],
-          tag: product.tag || "럭셔리",
-        });
-        return hydrated;
-      }),
-    );
-
+    const parsed = data.payload as LandingData;
     return {
+      ...defaultLandingData,
       ...parsed,
-      products,
-      footer: {
-        ...defaultLandingData.footer,
-        ...parsed.footer,
-      },
       section: {
         ...defaultLandingData.section,
         ...parsed.section,
       },
+      footer: {
+        ...defaultLandingData.footer,
+        ...parsed.footer,
+      },
+      products: Array.isArray(parsed.products) ? parsed.products : defaultLandingData.products,
     };
-  } catch {
+  } catch (error) {
+    console.error("Supabase landing load failed:", error);
     return defaultLandingData;
   }
 }
 
-async function hydrateProductImages(product: ProductItem): Promise<ProductItem> {
-  let image = product.image;
-  if (!image && product.imageKey) {
-    const stored = await getImage(product.imageKey);
-    image = stored || "";
-  }
-
-  const additionalImages: string[] = [];
-  const keys = Array.isArray(product.additionalImageKeys) ? product.additionalImageKeys : [];
-  for (let index = 0; index < 5; index += 1) {
-    const key = keys[index];
-    if (key) {
-      const stored = await getImage(key);
-      additionalImages[index] = stored || "";
-    } else {
-      additionalImages[index] = String(product.additionalImages?.[index] || "");
-    }
-  }
-
-  return {
-    ...product,
-    image,
-    additionalImages,
-    additionalImageKeys: keys,
-  };
-}
-
-function isDataUrl(value: string) {
-  return value.startsWith("data:");
-}
-
-function buildImageKey(productId: string, suffix: string) {
-  return `product-image-${productId}-${suffix}`;
-}
-
 async function preparePersistableData(data: LandingData) {
-  const clone = {
-    ...data,
-    products: await Promise.all(
-      data.products.map(async (product) => {
-        const item = {
-          ...product,
-          additionalImages: [...(product.additionalImages || [])],
-          additionalImageKeys: product.additionalImageKeys ? [...product.additionalImageKeys] : [],
-        };
-        if (isDataUrl(item.image)) {
-          const key = item.imageKey || buildImageKey(item.id, "main");
-          await saveImage(key, item.image);
-          item.imageKey = key;
-          item.image = "";
-        }
-
-        const keys: (string | null)[] = item.additionalImageKeys
-          ? [...item.additionalImageKeys]
-          : [];
-        item.additionalImages = [...(item.additionalImages || [])];
-
-        for (let index = 0; index < 5; index += 1) {
-          const imageValue = item.additionalImages[index] || "";
-          if (isDataUrl(imageValue)) {
-            const key = keys[index] || buildImageKey(item.id, `additional-${index}`);
-            await saveImage(key, imageValue);
-            keys[index] = key;
-            item.additionalImages[index] = "";
-          } else if (imageValue) {
-            keys[index] = keys[index] || null;
-          } else {
-            keys[index] = keys[index] || null;
-          }
-        }
-
-        item.additionalImageKeys = keys;
-        return item;
-      }),
-    ),
-  };
-  return clone;
+  return data;
 }
 
 export async function saveLandingData(data: LandingData) {
@@ -285,6 +200,17 @@ export async function saveLandingData(data: LandingData) {
     return;
   }
 
+  if (!isSupabaseReady) {
+    throw new Error("Supabase environment variables are not configured.");
+  }
+
   const persistable = await preparePersistableData(data);
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));
+  const { error } = await supabase!
+    .from(LANDING_TABLE)
+    .upsert({ id: LANDING_ROW_ID, payload: persistable }, { onConflict: "id" });
+
+  if (error) {
+    console.error("Supabase landing save failed:", error);
+    throw error;
+  }
 }

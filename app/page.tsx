@@ -20,6 +20,7 @@ export default function Home() {
   const [orderSearchInput, setOrderSearchInput] = useState("");
   const [orderQueryResults, setOrderQueryResults] = useState<OrderItem[] | null>(null);
   const [orderSearchError, setOrderSearchError] = useState<string | null>(null);
+  const [orderSubmitError, setOrderSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     loadLandingData().then(setData).catch(() => setData(defaultLandingData));
@@ -39,6 +40,7 @@ export default function Home() {
       deliveryNote: "",
     });
     setCreatedOrder(null);
+    setOrderSubmitError(null);
   };
 
   const openOrderInquiry = () => {
@@ -55,7 +57,7 @@ export default function Home() {
     setOrderSearchError(null);
   };
 
-  const searchOrders = () => {
+  const searchOrders = async () => {
     const query = orderSearchInput.trim();
     if (!query) {
       setOrderSearchError("주문번호 또는 휴대폰 번호를 입력하세요.");
@@ -63,7 +65,15 @@ export default function Home() {
       return;
     }
 
-    const orders = loadOrders();
+    let orders: OrderItem[] = [];
+    try {
+      orders = await loadOrders();
+    } catch {
+      setOrderSearchError("주문 조회 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+      setOrderQueryResults(null);
+      return;
+    }
+
     const matched = orders.filter((order) => order.id.includes(query) || order.customerPhone.includes(query));
 
     if (!matched.length) {
@@ -81,6 +91,7 @@ export default function Home() {
     setModalStep("detail");
     setGalleryIndex(0);
     setCreatedOrder(null);
+    setOrderSubmitError(null);
   };
 
   const handleOrderFormChange = (field: keyof typeof orderForm, value: string | number) => {
@@ -90,7 +101,7 @@ export default function Home() {
     }));
   };
 
-  const handleCreateOrder = () => {
+  const handleCreateOrder = async () => {
     if (!selectedProduct) return;
     const orderId = `ORDER-${Date.now()}`;
     const totalPrice = selectedProduct.price.replace(/[^0-9]/g, "") || "0";
@@ -121,10 +132,15 @@ export default function Home() {
         ...bankInfo,
       },
     };
-
-    appendOrder(order);
-    setCreatedOrder(order);
-    setModalStep("confirmation");
+    try {
+      await appendOrder(order);
+      setOrderSubmitError(null);
+      setCreatedOrder(order);
+      setModalStep("confirmation");
+    } catch (error) {
+      console.error(error);
+      setOrderSubmitError("주문 저장에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    }
   };
 
   return (
@@ -205,8 +221,8 @@ export default function Home() {
         </div>
       </main>
       {selectedProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 overflow-y-auto">
-          <div className="mx-auto w-full max-w-3xl rounded-4xl bg-zinc-950 shadow-2xl shadow-black/70 my-8">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 px-4 py-8">
+          <div className="mx-auto w-full max-w-3xl rounded-4xl bg-zinc-950 shadow-2xl shadow-black/70 overflow-hidden">
             <div className="sticky top-0 flex items-center justify-between border-b border-white/10 bg-zinc-900 px-6 py-4 z-10">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-white/50">상품상세정보</p>
@@ -220,7 +236,7 @@ export default function Home() {
                 닫기
               </button>
             </div>
-            <div className="space-y-6 p-6">
+            <div className="space-y-6 p-6 max-h-[calc(100vh-14rem)] overflow-y-auto">
               {modalStep === "detail" && (
                 <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
                   <div className="space-y-4">
@@ -377,6 +393,11 @@ export default function Home() {
                       </label>
                     </div>
                   </div>
+                  {orderSubmitError && (
+                    <div className="rounded-3xl border border-rose-300/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                      {orderSubmitError}
+                    </div>
+                  )}
                   <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                     <button
                       type="button"
@@ -433,8 +454,8 @@ export default function Home() {
         </div>
       )}
       {orderInquiryOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 overflow-y-auto">
-          <div className="mx-auto w-full max-w-3xl rounded-4xl bg-zinc-950 shadow-2xl shadow-black/70 my-8">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 px-4 py-8">
+          <div className="mx-auto w-full max-w-3xl rounded-4xl bg-zinc-950 shadow-2xl shadow-black/70 overflow-hidden">
             <div className="sticky top-0 flex items-center justify-between border-b border-white/10 bg-zinc-900 px-6 py-4 z-10">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-white/50">주문 조회</p>
@@ -448,7 +469,7 @@ export default function Home() {
                 닫기
               </button>
             </div>
-            <div className="space-y-6 p-6">
+            <div className="space-y-6 p-6 max-h-[calc(100vh-14rem)] overflow-y-auto">
               <div className="rounded-4xl bg-white/5 p-6">
                 <p className="text-sm text-white/50">조회 정보</p>
                 <div className="mt-4 grid gap-4 sm:grid-cols-[1.5fr_0.9fr]">

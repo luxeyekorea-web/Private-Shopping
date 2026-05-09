@@ -18,19 +18,19 @@ const validateLandingData = (value: unknown): value is LandingData => {
     typeof cast.hero?.subtitle === "string" &&
     typeof cast.hero?.ctaMain === "string" &&
     typeof cast.hero?.ctaSecondary === "string" &&
-    typeof (cast as any).section?.heading === "string" &&
-    typeof (cast as any).section?.description === "string" &&
-    typeof (cast as any).footer?.companyName === "string" &&
-    typeof (cast as any).footer?.businessNumber === "string" &&
-    typeof (cast as any).footer?.address === "string" &&
-    typeof (cast as any).footer?.customerCenter === "string" &&
-    typeof (cast as any).footer?.email === "string" &&
-    typeof (cast as any).footer?.hours === "string" &&
-    typeof (cast as any).footer?.copyright === "string" &&
-    typeof (cast as any).footer?.bankName === "string" &&
-    typeof (cast as any).footer?.accountNumber === "string" &&
-    typeof (cast as any).footer?.accountHolder === "string" &&
-    typeof (cast as any).footer?.depositDue === "string" &&
+    typeof cast.section?.heading === "string" &&
+    typeof cast.section?.description === "string" &&
+    typeof cast.footer?.companyName === "string" &&
+    typeof cast.footer?.businessNumber === "string" &&
+    typeof cast.footer?.address === "string" &&
+    typeof cast.footer?.customerCenter === "string" &&
+    typeof cast.footer?.email === "string" &&
+    typeof cast.footer?.hours === "string" &&
+    typeof cast.footer?.copyright === "string" &&
+    typeof cast.footer?.bankName === "string" &&
+    typeof cast.footer?.accountNumber === "string" &&
+    typeof cast.footer?.accountHolder === "string" &&
+    typeof cast.footer?.depositDue === "string" &&
     Array.isArray(cast.products)
   );
 };
@@ -191,7 +191,7 @@ export default function AdminPage() {
     });
   };
 
-  const handleAdditionalImageDrop = (index: number, imageIndex: number, event: DragEvent<HTMLDivElement>) => {
+  const handleAdditionalImageDrop = (index: number, imageIndex: number, event: DragEvent<HTMLElement>) => {
     event.preventDefault();
     const file = event.dataTransfer.files?.[0];
     if (!file) return;
@@ -222,7 +222,7 @@ export default function AdminPage() {
     handleHeroImageFile(file);
   };
 
-  const handleImageDrop = (index: number, event: DragEvent<HTMLDivElement>) => {
+  const handleImageDrop = (index: number, event: DragEvent<HTMLElement>) => {
     event.preventDefault();
     const file = event.dataTransfer.files?.[0];
     if (!file) return;
@@ -670,7 +670,11 @@ export default function AdminPage() {
 
                                 <div className="space-y-2">
                                   <span className="text-xs font-semibold text-white/80">상품 이미지</span>
-                                  <label className="block rounded-2xl border border-dashed border-white/20 bg-zinc-950/40 p-2 text-center cursor-pointer transition hover:border-white/40 h-20">
+                                  <label
+                                    onDragOver={(event) => event.preventDefault()}
+                                    onDrop={(event) => handleImageDrop(index, event)}
+                                    className="block rounded-2xl border border-dashed border-white/20 bg-zinc-950/40 p-2 text-center cursor-pointer transition hover:border-white/40 h-20"
+                                  >
                                     {product.image ? (
                                       <img src={product.image} alt={product.name} className="mx-auto h-full w-full rounded-2xl object-cover" />
                                     ) : (
@@ -720,7 +724,11 @@ export default function AdminPage() {
                                       const preview = product.additionalImages[imageIndex] || "";
                                       return (
                                         <div key={imageIndex} className="relative">
-                                          <label className="block rounded-2xl border border-dashed border-white/20 bg-zinc-950/40 overflow-hidden cursor-pointer transition hover:border-white/40">
+                                          <label
+                                            onDragOver={(event) => event.preventDefault()}
+                                            onDrop={(event) => handleAdditionalImageDrop(index, imageIndex, event)}
+                                            className="block rounded-2xl border border-dashed border-white/20 bg-zinc-950/40 overflow-hidden cursor-pointer transition hover:border-white/40"
+                                          >
                                             {preview ? (
                                               <img src={preview} alt={`추가 ${imageIndex + 1}`} className="h-20 w-full object-cover" />
                                             ) : (

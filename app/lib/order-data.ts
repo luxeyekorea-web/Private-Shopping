@@ -1,3 +1,5 @@
+import { isSupabaseReady, supabase } from "./supabase-client";
+
 export type OrderItem = {
   id: string;
   productId: string;
@@ -19,7 +21,7 @@ export type OrderItem = {
   };
 };
 
-const ORDER_STORAGE_KEY = "lux-eyewear-orders";
+const ORDERS_TABLE = "orders";
 
 export const defaultBankInfo = {
   bankName: "국민은행",
@@ -28,45 +30,111 @@ export const defaultBankInfo = {
   depositDue: "48시간 이내",
 };
 
-export function loadOrders(): OrderItem[] {
+export async function loadOrders(): Promise<OrderItem[]> {
   if (typeof window === "undefined") {
+    return [];
+  }
+
+  if (!isSupabaseReady) {
+    console.error("Supabase environment variables are not configured.");
     return [];
   }
 
   try {
-    const saved = window.localStorage.getItem(ORDER_STORAGE_KEY);
-    if (!saved) return [];
-    return JSON.parse(saved) as OrderItem[];
-  } catch {
+    const { data, error } = await supabase!
+      .from(ORDERS_TABLE)
+      .select("*")
+      .order("createdAt", { ascending: false });
+
+    if (error) {
+      console.error("Supabase order load failed:", error);
+      return [];
+    }
+
+    return Array.isArray(data) ? (data as OrderItem[]) : [];
+  } catch (error) {
+    console.error("Supabase order load failed:", error);
     return [];
   }
 }
 
-export function saveOrders(orders: OrderItem[]) {
+export async function saveOrders(orders: OrderItem[]) {
   if (typeof window === "undefined") {
     return;
   }
-  window.localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(orders));
+
+  if (!isSupabaseReady) {
+    throw new Error("Supabase environment variables are not configured.");
+  }
+
+  const deleteResult = await supabase!.from(ORDERS_TABLE).delete().neq("id", "");
+  if (deleteResult.error) {
+    console.error("Supabase order bulk delete failed:", deleteResult.error);
+    throw deleteResult.error;
+  }
+
+  if (orders.length > 0) {
+    const { error } = await supabase!.from(ORDERS_TABLE).insert(orders);
+    if (error) {
+      console.error("Supabase order bulk save failed:", error);
+      throw error;
+    }
+  }
 }
 
-export function appendOrder(order: OrderItem) {
-  const current = loadOrders();
-  saveOrders([...current, order]);
+export async function appendOrder(order: OrderItem) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (!isSupabaseReady) {
+    throw new Error("Supabase environment variables are not configured.");
+  }
+
+  const { error } = await supabase!.from(ORDERS_TABLE).insert(order);
+  if (error) {
+    console.error("Supabase order insert failed:", error);
+    throw error;
+  }
 }
 
-export function updateOrder(updatedOrder: OrderItem) {
-  const current = loadOrders();
-  const next = current.map((order) => (order.id === updatedOrder.id ? updatedOrder : order));
-  saveOrders(next);
+export async function updateOrder(updatedOrder: OrderItem) {
+  if (!isSupabaseReady) {
+    throw new Error("Supabase environment variables are not configured.");
+  }
+
+  const { error } = await supabase!
+    .from(ORDERS_TABLE)
+    .update(updatedOrder)
+    .eq("id", updatedOrder.id);
+  if (error) {
+    console.error("Supabase order update failed:", error);
+    throw error;
+  }
 }
 
-export function deleteOrder(orderId: string) {
-  const current = loadOrders();
-  const next = current.filter((order) => order.id !== orderId);
-  saveOrders(next);
+export async function deleteOrder(orderId: string) {
+  if (!isSupabaseReady) {
+    throw new Error("Supabase environment variables are not configured.");
+  }
+
+  const { error } = await supabase!.from(ORDERS_TABLE).delete().eq("id", orderId);
+  if (error) {
+    console.error("Supabase order delete failed:", error);
+    throw error;
+  }
 }
 
-export function clearOrders() {
+export async function clearOrders() {
   if (typeof window === "undefined") return;
-  window.localStorage.removeItem(ORDER_STORAGE_KEY);
+
+  if (!isSupabaseReady) {
+    throw new Error("Supabase environment variables are not configured.");
+  }
+
+  const { error } = await supabase!.from(ORDERS_TABLE).delete().neq("id", "");
+  if (error) {
+    console.error("Supabase clear orders failed:", error);
+    throw error;
+  }
 }
