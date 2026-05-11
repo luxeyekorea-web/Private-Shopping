@@ -537,6 +537,11 @@ export default function Home() {
                 </div>
                 <div className="mt-8 flex items-center justify-between gap-4 text-sm sm:text-base">
                   <div className="space-y-1">
+                    {product.initialPrice?.trim() && (
+                      <span className="block text-sm font-medium text-white/45 line-through decoration-white/35 decoration-1">
+                        {product.initialPrice}
+                      </span>
+                    )}
                     <span className="block text-2xl font-semibold text-white">{product.price}</span>
                     {(display.showStockQuantity || isSoldOut) && (
                       <span className="block text-xs text-white/50">
@@ -637,7 +642,14 @@ export default function Home() {
                   <div className="space-y-6 rounded-4xl bg-white/5 p-6">
                     <div>
                       <p className="text-sm text-white/50">가격</p>
-                      <p className="mt-2 text-3xl font-semibold text-white">{selectedProduct.price}</p>
+                      {selectedProduct.initialPrice?.trim() && (
+                        <p className="mt-2 text-sm font-medium text-white/45 line-through decoration-white/35 decoration-1">
+                          {selectedProduct.initialPrice}
+                        </p>
+                      )}
+                      <p className={`${selectedProduct.initialPrice?.trim() ? "mt-1" : "mt-2"} text-3xl font-semibold text-white`}>
+                        {selectedProduct.price}
+                      </p>
                       <p className="mt-2 text-sm text-white/60">
                         {getStockQuantity(selectedProduct) <= 0
                           ? "품절"

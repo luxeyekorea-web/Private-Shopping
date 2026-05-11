@@ -4,6 +4,7 @@ export type ProductItem = {
   id: string;
   name: string;
   description: string;
+  initialPrice?: string;
   price: string;
   image: string;
   tag: string;
@@ -62,6 +63,23 @@ export type LandingData = {
 const LANDING_TABLE = "landing_data";
 const LANDING_ROW_ID = "default";
 const LANDING_IMAGE_BUCKET = "landing-images";
+const SUPABASE_LOAD_TIMEOUT_MS = 6000;
+
+function withLoadTimeout<T>(promise: PromiseLike<T>, timeoutMessage: string): Promise<T> {
+  if (typeof window === "undefined") {
+    return Promise.resolve(promise);
+  }
+
+  return new Promise((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => {
+      reject(new Error(timeoutMessage));
+    }, SUPABASE_LOAD_TIMEOUT_MS);
+
+    Promise.resolve(promise)
+      .then(resolve, reject)
+      .finally(() => window.clearTimeout(timeoutId));
+  });
+}
 
 function getSupabaseErrorMessage(error: unknown) {
   if (error instanceof Error) {
@@ -108,6 +126,7 @@ function normalizeProducts(products: ProductItem[]) {
     return {
       ...product,
       id,
+      initialPrice: typeof product.initialPrice === "string" ? product.initialPrice : "",
       additionalImages: Array.isArray(product.additionalImages) ? product.additionalImages : [],
       stockQuantity: Number.isFinite(Number(product.stockQuantity))
         ? Math.max(0, Number(product.stockQuantity))
@@ -252,6 +271,7 @@ export const defaultLandingData: LandingData = {
     {
       id: "astra-luxe",
       name: "Astra Luxe",
+      initialPrice: "",
       description: "골드 프레임과 다크 템플이 만드는 시그니처 매력.",
       price: "259,000원",
       image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=800&q=80",
@@ -267,6 +287,7 @@ export const defaultLandingData: LandingData = {
     {
       id: "noir-vision",
       name: "Noir Vision",
+      initialPrice: "",
       description: "프리미엄 블랙 실루엣으로 완성한 모던 아이웨어.",
       price: "219,000원",
       image: "https://images.unsplash.com/photo-1521334884684-d80222895322?auto=format&fit=crop&w=800&q=80",
@@ -282,6 +303,7 @@ export const defaultLandingData: LandingData = {
     {
       id: "selenium-pearl",
       name: "Selenia Pearl",
+      initialPrice: "",
       description: "부드러운 곡선과 펄 컬러가 돋보이는 럭셔리 디자인.",
       price: "289,000원",
       image: "https://images.unsplash.com/photo-1562158074-9b1470a2865d?auto=format&fit=crop&w=800&q=80",
@@ -297,6 +319,7 @@ export const defaultLandingData: LandingData = {
     {
       id: "aurora-frame",
       name: "Aurora Frame",
+      initialPrice: "",
       description: "미니멀한 실루엣과 은은한 광택의 시크 포인트.",
       price: "239,000원",
       image: "https://images.unsplash.com/photo-1511367461989-f85a21fda167?auto=format&fit=crop&w=800&q=80",
@@ -312,6 +335,7 @@ export const defaultLandingData: LandingData = {
     {
       id: "velvet-edge",
       name: "Velvet Edge",
+      initialPrice: "",
       description: "소프트 텍스처와 클래식한 형태가 어우러진 아이웨어.",
       price: "249,000원",
       image: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&w=800&q=80",
@@ -327,6 +351,7 @@ export const defaultLandingData: LandingData = {
     {
       id: "opal-shadow",
       name: "Opal Shadow",
+      initialPrice: "",
       description: "빛에 따라 다채롭게 변하는 트랜스페어런트 라인.",
       price: "279,000원",
       image: "https://images.unsplash.com/photo-1510511459019-5dda7724fd87?auto=format&fit=crop&w=800&q=80",
@@ -353,11 +378,14 @@ export async function loadLandingData(): Promise<LandingData> {
   }
 
   try {
-    const { data, error } = await supabase!
-      .from(LANDING_TABLE)
-      .select("payload")
-      .eq("id", LANDING_ROW_ID)
-      .single();
+    const { data, error } = await withLoadTimeout(
+      supabase!
+        .from(LANDING_TABLE)
+        .select("payload")
+        .eq("id", LANDING_ROW_ID)
+        .single(),
+      "Supabase landing load timed out.",
+    );
 
     if (error || !data?.payload) {
       if (error) console.error("Supabase landing load failed:", error);

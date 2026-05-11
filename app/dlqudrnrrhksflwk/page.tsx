@@ -214,6 +214,7 @@ export default function AdminPage() {
           id: `product-${Date.now()}`,
           name: "새 상품",
           description: "상품 설명을 입력하세요.",
+          initialPrice: "",
           price: "0원",
           image: "",
           tag: "럭셔리",
@@ -798,7 +799,7 @@ export default function AdminPage() {
                                 )}
                               </div>
                               <p className="mt-1 text-xs text-white/50">
-                                {product.tag} · {product.price} · {isSoldOut ? "품절" : `${Math.max(0, Number(product.stockQuantity) || 0)}개 남음`} · 최대 {Math.max(1, Number(product.maxOrderQuantity) || 1)}개
+                                {product.tag} · {product.initialPrice ? `${product.initialPrice} → ` : ""}{product.price} · {isSoldOut ? "품절" : `${Math.max(0, Number(product.stockQuantity) || 0)}개 남음`} · 최대 {Math.max(1, Number(product.maxOrderQuantity) || 1)}개
                               </p>
                             </div>
                           </div>
@@ -874,7 +875,7 @@ export default function AdminPage() {
                         {isExpanded && (
                           <div className="border-t border-white/10 bg-zinc-950/50 p-4 space-y-4">
                             <div className="space-y-4">
-                              <div className="grid gap-3 sm:grid-cols-5">
+                              <div className="grid gap-3 sm:grid-cols-6">
                                 <label className="space-y-1 text-sm text-white/80">
                                   <span className="text-xs">태그</span>
                                   <input
@@ -891,6 +892,16 @@ export default function AdminPage() {
                                     value={product.name}
                                     onChange={(event) => updateProductField(index, "name", event.target.value)}
                                     className="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-white/30"
+                                  />
+                                </label>
+                                <label className="space-y-1 text-sm text-white/80">
+                                  <span className="text-xs">최초판매가</span>
+                                  <input
+                                    type="text"
+                                    value={product.initialPrice || ""}
+                                    onChange={(event) => updateProductField(index, "initialPrice", event.target.value)}
+                                    className="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-white/30"
+                                    placeholder="예: 289,000원"
                                   />
                                 </label>
                                 <label className="space-y-1 text-sm text-white/80">
