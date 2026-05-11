@@ -26,11 +26,31 @@ body {
 }
 
 .landing-hero-image {
-  background-size: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 @media (max-width: 1280px) {
   .landing-hero-image {
-    background-size: clamp(100%, calc(100% + (1280px - 100vw) * 0.075), 166.67%) auto;
+    width: 112%;
+  }
+}
+
+@media (max-width: 1024px) {
+  .landing-hero-image {
+    width: 128%;
+  }
+}
+
+@media (max-width: 768px) {
+  .landing-hero-image {
+    width: 150%;
+  }
+}
+
+@media (max-width: 480px) {
+  .landing-hero-image {
+    width: 166.67%;
   }
 }

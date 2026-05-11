@@ -467,9 +467,6 @@ export default function Home() {
     );
   }
 
-  const heroBackgroundImage = data.hero.backgroundImage
-    ? `url(${data.hero.backgroundImage})`
-    : "";
   const heroBackdropImage = data.hero.backgroundImage
     ? `linear-gradient(rgba(8,7,11,0.72), rgba(8,7,11,0.72)), radial-gradient(circle at top, rgba(255,255,255,0.14), transparent 30%), linear-gradient(180deg, #111827 0%, #05060a 100%)`
     : "radial-gradient(circle at top, rgba(255,255,255,0.14), transparent 30%), linear-gradient(180deg, #111827 0%, #05060a 100%)";
@@ -486,13 +483,15 @@ export default function Home() {
         }}
       >
         {data.hero.backgroundImage && (
-          <div
-            className="landing-hero-image absolute inset-0 bg-center bg-no-repeat"
-            style={{
-              backgroundImage: heroBackgroundImage,
-            }}
+          <img
+            src={data.hero.backgroundImage}
+            alt=""
+            className="landing-hero-image absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2"
             aria-hidden="true"
           />
+        )}
+        {data.hero.backgroundImage && (
+          <div className="absolute inset-0 bg-[rgba(8,7,11,0.72)]" aria-hidden="true" />
         )}
         <div className="relative z-[1] mx-auto flex w-full max-w-7xl flex-col gap-10 lg:flex-row lg:items-center lg:justify-between lg:pl-12 xl:pl-16 2xl:pl-20">
           <div className="w-full max-w-2xl text-left">
