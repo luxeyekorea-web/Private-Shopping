@@ -474,7 +474,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       <header
-        className="relative flex min-h-[440px] items-center overflow-hidden px-6 py-16 sm:min-h-[520px] sm:px-12 lg:min-h-[560px]"
+        className="relative flex min-h-[clamp(320px,101vw,400px)] items-center overflow-hidden px-6 py-8 sm:min-h-[520px] sm:px-12 sm:py-16 lg:min-h-[560px]"
         style={{
           backgroundImage: heroBackdropImage,
           backgroundPosition: data.hero.backgroundImage ? "center, center top, center" : "center top, center",
@@ -517,7 +517,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main id="products" className="mx-auto max-w-7xl px-6 py-16 sm:px-12">
+      <main id="products" className="mx-auto max-w-7xl px-6 py-6 sm:px-12 sm:py-16">
         <section className="mb-12 text-center">
           <p className="text-sm uppercase tracking-[0.28em] text-white/50">Featured Selection</p>
           <h2 className="mt-4 text-3xl font-semibold sm:text-4xl">{data.section.heading}</h2>
