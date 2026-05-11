@@ -212,6 +212,13 @@ export default function Home() {
   const openProductModal = (product: LandingData["products"][number]) => {
     if (getStockQuantity(product) <= 0) return;
 
+    if (product.paymentMode === "external") {
+      if (product.paymentLink) {
+        window.open(product.paymentLink, "_blank", "noopener,noreferrer");
+      }
+      return;
+    }
+
     setSelectedProduct(product);
     setModalStep("detail");
     setGalleryIndex(0);
@@ -460,18 +467,35 @@ export default function Home() {
     );
   }
 
+  const heroBackgroundImage = data.hero.backgroundImage
+    ? `url(${data.hero.backgroundImage})`
+    : "";
+  const heroBackdropImage = data.hero.backgroundImage
+    ? `linear-gradient(rgba(8,7,11,0.72), rgba(8,7,11,0.72)), radial-gradient(circle at top, rgba(255,255,255,0.14), transparent 30%), linear-gradient(180deg, #111827 0%, #05060a 100%)`
+    : "radial-gradient(circle at top, rgba(255,255,255,0.14), transparent 30%), linear-gradient(180deg, #111827 0%, #05060a 100%)";
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       <header
-        className="relative overflow-hidden py-16 px-6 sm:px-12"
+        className="relative flex min-h-[440px] items-center overflow-hidden px-6 py-16 sm:min-h-[520px] sm:px-12 lg:min-h-[560px]"
         style={{
-          backgroundImage: `${data.hero.backgroundImage ? `linear-gradient(rgba(8,7,11,0.72), rgba(8,7,11,0.72)), url(${data.hero.backgroundImage}),` : ""} radial-gradient(circle at top, rgba(255,255,255,0.14), transparent 30%), linear-gradient(180deg, #111827 0%, #05060a 100%)`,
-          backgroundPosition: "center",
-          backgroundSize: "cover",
+          backgroundImage: heroBackdropImage,
+          backgroundPosition: data.hero.backgroundImage ? "center, center top, center" : "center top, center",
+          backgroundRepeat: data.hero.backgroundImage ? "no-repeat, no-repeat, no-repeat" : "no-repeat, no-repeat",
+          backgroundSize: data.hero.backgroundImage ? "cover, auto, cover" : "auto, cover",
         }}
       >
-        <div className="mx-auto flex max-w-6xl flex-col gap-10 lg:flex-row lg:items-center lg:justify-between">
-          <div className="max-w-2xl">
+        {data.hero.backgroundImage && (
+          <div
+            className="landing-hero-image absolute inset-0 bg-center bg-no-repeat"
+            style={{
+              backgroundImage: heroBackgroundImage,
+            }}
+            aria-hidden="true"
+          />
+        )}
+        <div className="relative z-[1] mx-auto flex w-full max-w-7xl flex-col gap-10 lg:flex-row lg:items-center lg:justify-between lg:pl-12 xl:pl-16 2xl:pl-20">
+          <div className="w-full max-w-2xl text-left">
             <p className="mb-4 inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm tracking-[0.18em] text-white/75">
               {data.hero.highlight}
             </p>
@@ -555,7 +579,7 @@ export default function Home() {
                     disabled={isSoldOut}
                     className="rounded-full border border-white/15 bg-white/5 px-5 py-3 text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:border-rose-300/20 disabled:bg-rose-500/10 disabled:text-rose-100 disabled:hover:bg-rose-500/10"
                   >
-                    {isSoldOut ? "품절되었습니다" : "자세히 보기"}
+                    {isSoldOut ? "품절되었습니다" : product.paymentMode === "external" ? "구매하러 가기" : "자세히 보기"}
                   </button>
                 </div>
               </article>
@@ -564,22 +588,24 @@ export default function Home() {
         </div>
       </main>
       {selectedProduct && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 px-4 py-8">
-          <div className="mx-auto w-full max-w-3xl rounded-4xl bg-zinc-950 shadow-2xl shadow-black/70 overflow-hidden">
-            <div className="sticky top-0 flex items-center justify-between border-b border-white/10 bg-zinc-900 px-6 py-4 z-10">
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-white/50">상품상세정보</p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">{selectedProduct.name}</h2>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 p-0 sm:px-4 sm:py-8">
+          <div className="mx-auto min-h-[100dvh] w-full max-w-3xl overflow-hidden bg-zinc-950 shadow-2xl shadow-black/70 sm:min-h-0 sm:rounded-4xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-zinc-950/95 px-5 py-4 backdrop-blur-xl sm:bg-zinc-900 sm:px-6">
+              <div className="min-w-0">
+                <p className="text-xs uppercase tracking-[0.22em] text-white/45 sm:tracking-[0.24em]">상품상세정보</p>
+                <h2 className="mt-2 line-clamp-2 text-2xl font-semibold leading-tight text-white sm:line-clamp-none">
+                  {selectedProduct.name}
+                </h2>
               </div>
               <button
                 type="button"
                 onClick={closeModal}
-                className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white transition hover:bg-white/10 shrink-0"
+                className="ml-4 shrink-0 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white transition hover:bg-white/10"
               >
                 닫기
               </button>
             </div>
-            <div className="space-y-6 p-6 max-h-[calc(100vh-14rem)] overflow-y-auto">
+            <div className="space-y-5 p-5 sm:max-h-[calc(100vh-14rem)] sm:space-y-6 sm:overflow-y-auto sm:p-6">
               {modalStep === "detail" && (
                 <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
                   <div className="space-y-4">
@@ -667,7 +693,7 @@ export default function Home() {
                         <p>외부 링크가 설정되지 않았습니다. 관리자에서 링크를 확인하세요.</p>
                       )}
                     </div>
-                    {getProductOptions(selectedProduct).length > 0 && (
+                    {selectedProduct.paymentMode === "bank-transfer" && getProductOptions(selectedProduct).length > 0 && (
                       <div className="rounded-3xl border border-white/10 bg-zinc-950/60 p-3">
                         <p className="text-sm text-white/50">주문 옵션 · {selectedProduct.optionName || "옵션"}</p>
                         <div className="mt-2 space-y-1.5">
@@ -704,7 +730,7 @@ export default function Home() {
                           rel="noopener noreferrer"
                           className={`inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition ${selectedProduct.paymentLink ? "bg-white text-zinc-950 hover:bg-white/90" : "bg-white/10 text-white/50 cursor-not-allowed"}`}
                         >
-                          외부 쇼핑몰 이동
+                          구매하러 가기
                         </a>
                       ) : (
                         <button

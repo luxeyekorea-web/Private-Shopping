@@ -267,24 +267,24 @@ export default function AdminOrdersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 px-6 py-8 text-white sm:px-10">
+    <div className="min-h-screen bg-zinc-950 px-4 py-4 text-white sm:px-10 sm:py-8">
       {message && (
-        <div className="fixed right-4 top-4 z-[100] max-w-sm rounded-3xl border border-emerald-300/30 bg-emerald-500/15 px-5 py-4 text-sm font-semibold text-emerald-100 shadow-2xl shadow-black/40 backdrop-blur sm:right-8 sm:top-8">
+        <div className="fixed right-4 top-4 z-[100] max-w-sm rounded-2xl border border-emerald-300/30 bg-emerald-500/15 px-4 py-3 text-xs font-semibold text-emerald-100 shadow-2xl shadow-black/40 backdrop-blur sm:right-8 sm:top-8 sm:rounded-3xl sm:px-5 sm:py-4 sm:text-sm">
           {message}
         </div>
       )}
-      <div className="mx-auto max-w-6xl space-y-6">
-        <div className="rounded-4xl border border-white/10 bg-white/5 p-6 shadow-2xl shadow-black/30 sm:p-8">
-          <div className="mb-8 rounded-4xl bg-zinc-950/95 p-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto max-w-6xl space-y-4 sm:space-y-6">
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl shadow-black/30 sm:rounded-4xl sm:p-8">
+          <div className="mb-5 rounded-3xl bg-zinc-950/95 p-4 sm:mb-8 sm:rounded-4xl sm:p-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
               <div>
-                <p className="text-sm uppercase tracking-[0.28em] text-white/50">관리자 주문 관리</p>
-                <h1 className="mt-3 text-2xl font-semibold leading-tight sm:text-3xl">주문 현황 및 처리</h1>
+                <p className="text-xs uppercase tracking-[0.22em] text-white/50 sm:text-sm sm:tracking-[0.28em]">관리자 주문 관리</p>
+                <h1 className="mt-2 text-xl font-semibold leading-tight sm:mt-3 sm:text-3xl">주문 현황 및 처리</h1>
               </div>
-              <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="grid grid-cols-1 gap-2 lg:flex lg:flex-row lg:gap-3">
                 <Link
                   href="/dlqudrnrrhksflwk"
-                  className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                  className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-white/10 lg:px-5 lg:py-3 lg:text-sm"
                 >
                   상품 관리 페이지로 이동
                 </Link>
@@ -292,43 +292,43 @@ export default function AdminOrdersPage() {
             </div>
           </div>
 
-          <div className="rounded-4xl border border-white/10 bg-zinc-950/30 p-6">
-            <div className="flex flex-col gap-5">
-              <div className="grid w-full gap-4 lg:grid-cols-[1.4fr_auto] lg:items-end">
+          <div className="rounded-3xl border border-white/10 bg-zinc-950/30 p-4 sm:rounded-4xl sm:p-6">
+            <div className="flex flex-col gap-4 sm:gap-5">
+              <div className="grid w-full gap-3 lg:grid-cols-[1.4fr_auto] lg:items-end lg:gap-4">
                 <label className="space-y-2 text-sm text-white/80">
-                  주문번호 / 휴대폰 / 주문자 검색
+                  주문 검색
                   <input
                     type="text"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
-                    className="w-full rounded-3xl border border-white/10 bg-zinc-950/50 px-4 py-3 text-white outline-none transition focus:border-white/30"
-                    placeholder="ORDER-123456 또는 01012345678..."
+                    className="w-full rounded-2xl border border-white/10 bg-zinc-950/50 px-4 py-2.5 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-white/30 sm:rounded-3xl sm:py-3 sm:text-base"
+                    placeholder="ORDER-123456 또는 01012345678"
                   />
                 </label>
-                <div className="flex gap-3">
+                <div className="grid grid-cols-2 gap-2 lg:flex lg:gap-3">
                   <button
                     type="button"
                     onClick={handleSearch}
-                    className="inline-flex min-w-22.5 items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-white/90"
+                    className="inline-flex min-w-0 items-center justify-center rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-zinc-950 transition hover:bg-white/90 lg:min-w-22.5 lg:px-5 lg:py-3"
                   >
                     검색
                   </button>
                   <button
                     type="button"
                     onClick={handleReset}
-                    className="inline-flex min-w-22.5 items-center justify-center rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                    className="inline-flex min-w-0 items-center justify-center rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 lg:min-w-22.5 lg:px-5 lg:py-3"
                   >
                     초기화
                   </button>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
                 {(["전체", ...ORDER_STATUSES] as const).map((status) => (
                   <button
                     key={status}
                     type="button"
                     onClick={() => handleStatusFilterChange(status)}
-                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                    className={`shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition sm:px-4 sm:text-sm ${
                       statusFilter === status
                         ? "border-white bg-white text-zinc-950"
                         : status === "전체"
@@ -343,26 +343,26 @@ export default function AdminOrdersPage() {
                   </button>
                 ))}
               </div>
-              <div className="grid gap-3 rounded-3xl border border-white/10 bg-white/5 p-4 lg:grid-cols-[auto_1fr_auto] lg:items-center">
-                <div className="flex flex-wrap gap-2">
+              <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 sm:rounded-3xl sm:p-4 lg:grid-cols-[auto_1fr_auto] lg:items-center">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={toggleSelectAllFiltered}
-                    className="rounded-full border border-white/15 bg-zinc-950/50 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+                    className="rounded-full border border-white/15 bg-zinc-950/50 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10 sm:px-4 sm:text-sm"
                   >
                     {filtered.length > 0 && filtered.every((order) => selectedOrderIds.includes(order.id))
                       ? "전체 선택 해제"
                       : "전체 선택"}
                   </button>
-                  <span className="inline-flex items-center rounded-full bg-black/30 px-4 py-2 text-sm text-white/60">
+                  <span className="inline-flex items-center rounded-full bg-black/30 px-3 py-2 text-xs text-white/60 sm:px-4 sm:text-sm">
                     선택 {selectedOrderIds.length}건 / 표시 {filtered.length}건
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className={`${selectedOrderIds.length === 0 ? "hidden lg:flex" : "flex"} flex-wrap gap-2`}>
                   <select
                     value={bulkStatus}
                     onChange={(event) => setBulkStatus(event.target.value as OrderItem["status"])}
-                    className="rounded-full border border-white/10 bg-zinc-950/70 px-4 py-2 text-sm text-white outline-none"
+                    className="min-w-0 flex-1 rounded-full border border-white/10 bg-zinc-950/70 px-3 py-2 text-xs text-white outline-none sm:flex-none sm:px-4 sm:text-sm"
                   >
                     {ORDER_STATUSES.map((status) => (
                       <option key={status} value={status} className="bg-zinc-950 text-white">
@@ -374,7 +374,7 @@ export default function AdminOrdersPage() {
                     type="button"
                     onClick={handleBulkStatusChange}
                     disabled={selectedOrderIds.length === 0}
-                    className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/30 disabled:text-white/50"
+                    className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-zinc-950 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/30 disabled:text-white/50 sm:px-4 sm:text-sm"
                   >
                     선택 상태변경
                   </button>
@@ -382,7 +382,7 @@ export default function AdminOrdersPage() {
                 <button
                   type="button"
                   onClick={downloadOrdersCsv}
-                  className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+                  className="rounded-full border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10 sm:px-4 sm:text-sm"
                 >
                   엑셀 다운로드
                 </button>
@@ -390,9 +390,9 @@ export default function AdminOrdersPage() {
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2.5 sm:space-y-3">
             {filtered.length === 0 ? (
-              <div className="rounded-4xl border border-dashed border-white/15 bg-zinc-950/50 p-8 text-center text-sm text-white/60">
+              <div className="rounded-3xl border border-dashed border-white/15 bg-zinc-950/50 p-6 text-center text-sm text-white/60 sm:rounded-4xl sm:p-8">
                 아직 저장된 주문이 없습니다.
               </div>
             ) : (
@@ -401,9 +401,9 @@ export default function AdminOrdersPage() {
                 const isSavingOrder = savingOrderIds.includes(order.id);
 
                 return (
-                  <div key={order.id} className={`rounded-3xl border bg-white/5 px-4 py-3 ${order.status === "취소" ? "border-rose-300/20 opacity-75" : "border-white/10"}`}>
-                    <div className="flex items-center gap-3">
-                      <label className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-zinc-950/60">
+                  <div key={order.id} className={`rounded-3xl border bg-white/5 px-3 py-3 sm:px-4 ${order.status === "취소" ? "border-rose-300/20 opacity-75" : "border-white/10"}`}>
+                    <div className="flex items-start gap-3 lg:items-center">
+                      <label className="mt-0.5 flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-zinc-950/60 sm:h-9 sm:w-9 lg:mt-0">
                         <input
                           type="checkbox"
                           checked={selectedOrderIds.includes(order.id)}
@@ -415,17 +415,20 @@ export default function AdminOrdersPage() {
                       <button
                         type="button"
                         onClick={() => toggleOrderExpand(order.id)}
-                        className="grid min-w-0 flex-1 cursor-pointer gap-3 text-left md:grid-cols-[1.5fr_0.8fr_1.2fr_auto] md:items-center"
+                        className="min-w-0 flex-1 cursor-pointer text-left lg:grid lg:gap-3 lg:grid-cols-[1.5fr_0.8fr_1.2fr_auto] lg:items-center"
                       >
-                        <div className="min-w-0">
-                          <p className="truncate text-base font-semibold text-white">{order.id}</p>
-                          <p className="mt-1 text-xs text-white/55">{new Date(order.createdAt).toLocaleString("ko-KR")}</p>
+                        <div className="flex min-w-0 items-start justify-between gap-3 lg:block">
+                          <p className="min-w-0 truncate text-sm font-semibold text-white sm:text-base">{order.id}</p>
+                          <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold sm:px-3 sm:text-xs lg:hidden ${getOrderStatusClassName(order.status)}`}>
+                            {order.status}
+                          </span>
+                          <p className="mt-1 hidden text-xs text-white/55 lg:block">{new Date(order.createdAt).toLocaleString("ko-KR")}</p>
                         </div>
-                        <div className="min-w-0">
+                        <div className="mt-1 hidden min-w-0 lg:mt-0 lg:block">
                           <p className="text-xs text-white/40">주문자</p>
                           <p className="mt-0.5 truncate text-sm font-semibold text-white">{order.customerName}</p>
                         </div>
-                        <div className="min-w-0">
+                        <div className="mt-1 hidden min-w-0 lg:mt-0 lg:block">
                           <p className="text-xs text-white/40">상품 / 금액</p>
                           <p className="mt-0.5 truncate text-sm font-semibold text-white">{order.productName} · {order.totalPrice}</p>
                           {order.selectedOption && (
@@ -434,20 +437,31 @@ export default function AdminOrdersPage() {
                             </p>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 md:justify-end">
-                          <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getOrderStatusClassName(order.status)}`}>
-                            {order.status}
+                        <p className="mt-1 truncate text-sm font-semibold text-white lg:hidden">
+                          {order.customerName} · {order.productName} · {order.totalPrice}
+                        </p>
+                        <div className="mt-1 flex min-w-0 items-center justify-between gap-3 lg:mt-0 lg:justify-end">
+                          <p className="min-w-0 truncate text-xs text-white/55 lg:hidden">{new Date(order.createdAt).toLocaleString("ko-KR")}</p>
+                          <span className="flex shrink-0 items-center gap-2 text-xs text-white/60 lg:justify-end">
+                            <span className={`hidden rounded-full border px-3 py-1 text-xs font-semibold lg:inline-flex ${getOrderStatusClassName(order.status)}`}>
+                              {order.status}
+                            </span>
+                            {isSavingOrder && <span className="text-white/45">저장 중</span>}
+                            <span className="text-base text-white lg:text-lg">{isExpanded ? "▲" : "▼"}</span>
                           </span>
-                          {isSavingOrder && <span className="text-xs text-white/45">저장 중</span>}
-                          <span className="text-lg text-white">{isExpanded ? "▲" : "▼"}</span>
                         </div>
+                        {order.selectedOption && (
+                          <p className="mt-1 truncate text-xs text-white/45 lg:hidden">
+                            {order.selectedOption.name}: {order.selectedOption.value}
+                          </p>
+                        )}
                       </button>
                     </div>
 
                     {isExpanded && (
                       <>
-                  <div className="mt-5 grid gap-4 lg:grid-cols-2">
-                    <div className="space-y-2 rounded-3xl bg-zinc-950/70 p-4 text-sm text-white/75">
+                  <div className="mt-4 grid gap-3 lg:mt-5 lg:grid-cols-2 lg:gap-4">
+                    <div className="space-y-1.5 rounded-2xl bg-zinc-950/70 p-3 text-xs leading-5 text-white/75 sm:rounded-3xl sm:p-4 sm:text-sm">
                       <p className="font-semibold text-white">주문자 정보</p>
                       <p>상품명: {order.productName}</p>
                       {order.selectedOption && (
@@ -458,7 +472,7 @@ export default function AdminOrdersPage() {
                       <p>주소: {order.customerAddress}</p>
                       {order.deliveryNote ? <p>배송 메모: {order.deliveryNote}</p> : null}
                     </div>
-                    <div className="space-y-2 rounded-3xl bg-zinc-950/70 p-4 text-sm text-white/75">
+                    <div className="space-y-1.5 rounded-2xl bg-zinc-950/70 p-3 text-xs leading-5 text-white/75 sm:rounded-3xl sm:p-4 sm:text-sm">
                       <p className="font-semibold text-white">결제 / 입금 정보</p>
                       <p>상품 가격: {order.productPrice}</p>
                       <p>수량: {order.quantity}개</p>
@@ -470,15 +484,15 @@ export default function AdminOrdersPage() {
                     </div>
                   </div>
 
-                  <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex flex-wrap gap-3">
-                      <label className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80">
+                  <div className="mt-4 flex flex-col gap-3 lg:mt-5 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-wrap gap-2 sm:gap-3">
+                      <label className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80 sm:px-4 sm:text-sm">
                         상태 변경
                         <select
                           value={order.status}
                           onChange={(event) => handleStatusChange(order.id, event.target.value as OrderItem["status"])}
                           disabled={isSavingOrder}
-                          className="rounded-full border border-white/10 bg-zinc-950/60 px-3 py-2 text-sm text-white outline-none disabled:cursor-wait disabled:opacity-50"
+                          className="rounded-full border border-white/10 bg-zinc-950/60 px-3 py-1.5 text-xs text-white outline-none disabled:cursor-wait disabled:opacity-50 sm:py-2 sm:text-sm"
                         >
                           {ORDER_STATUSES.map((status) => (
                             <option key={status} value={status} className="bg-zinc-950 text-white">
@@ -492,15 +506,15 @@ export default function AdminOrdersPage() {
                       type="button"
                       onClick={() => handleDelete(order.id)}
                       disabled={isSavingOrder}
-                      className="inline-flex items-center justify-center rounded-full border border-rose-300/30 bg-rose-500/10 px-5 py-3 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex items-center justify-center rounded-full border border-rose-300/30 bg-rose-500/10 px-4 py-2.5 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50 sm:px-5 sm:py-3 sm:text-sm"
                     >
                       주문 삭제
                     </button>
                   </div>
                   {order.status === "배송중" && (
-                    <div className="mt-5 rounded-3xl border border-white/10 bg-zinc-950/60 p-4">
+                    <div className="mt-4 rounded-2xl border border-white/10 bg-zinc-950/60 p-3 sm:mt-5 sm:rounded-3xl sm:p-4">
                       <p className="text-sm font-semibold text-white">배송 정보</p>
-                      <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                      <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
                         <label className="space-y-2 text-sm text-white/80">
                           배송사
                           <input
@@ -525,7 +539,7 @@ export default function AdminOrdersPage() {
                           type="button"
                           onClick={() => handleShippingSave(order.id)}
                           disabled={isSavingOrder}
-                          className="cursor-pointer rounded-full bg-white px-5 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-white/90 disabled:cursor-wait disabled:bg-white/40"
+                          className="cursor-pointer rounded-full bg-white px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-white/90 disabled:cursor-wait disabled:bg-white/40 sm:px-5"
                         >
                           {isSavingOrder ? "저장 중..." : "배송정보 저장"}
                         </button>

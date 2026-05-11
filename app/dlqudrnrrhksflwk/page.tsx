@@ -549,6 +549,9 @@ export default function AdminPage() {
                 <div className="mt-6 space-y-5">
                   <div className="space-y-2 text-sm text-white/80">
                     <span>배너 배경 이미지 업로드</span>
+                    <p className="text-xs leading-5 text-white/50">
+                      권장 사이즈: 1920×1080px, 16:9 비율. 중요한 상품/문구는 중앙 70% 안쪽에 배치하세요.
+                    </p>
                     <div
                       onDragOver={(event) => event.preventDefault()}
                       onDrop={handleHeroImageDrop}
@@ -558,10 +561,10 @@ export default function AdminPage() {
                         <img
                           src={data.hero.backgroundImage}
                           alt="Hero background"
-                          className="mx-auto mb-3 h-44 w-full max-w-2xl object-cover rounded-3xl"
+                          className="mx-auto mb-3 aspect-video h-auto w-full max-w-2xl rounded-3xl bg-zinc-950/70 object-contain"
                         />
                       ) : (
-                        <div className="mx-auto mb-3 flex h-44 w-full max-w-2xl items-center justify-center rounded-3xl bg-white/5 text-xs text-white/60">
+                        <div className="mx-auto mb-3 flex aspect-video h-auto w-full max-w-2xl items-center justify-center rounded-3xl bg-white/5 text-xs text-white/60">
                           이미지 파일을 드래그하거나 클릭하여 업로드
                         </div>
                       )}

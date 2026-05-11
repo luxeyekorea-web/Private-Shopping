@@ -24,3 +24,13 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.landing-hero-image {
+  background-size: contain;
+}
+
+@media (max-width: 1280px) {
+  .landing-hero-image {
+    background-size: clamp(100%, calc(100% + (1280px - 100vw) * 0.075), 166.67%) auto;
+  }
+}
