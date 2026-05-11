@@ -1,11 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Script from "next/script";
 import { LandingData, defaultLandingData, loadLandingData, saveLandingData } from "./lib/landing-data";
 import { appendOrder, defaultBankInfo, loadOrders, type OrderItem } from "./lib/order-data";
 
 const INVITE_ACCESS_STORAGE_KEY = "private-shopping-invite-access";
 const INVITE_ACCESS_DURATION_MS = 3 * 60 * 60 * 1000;
+
+type DaumPostcodeData = {
+  address: string;
+  roadAddress: string;
+  jibunAddress: string;
+  zonecode: string;
+};
+
+declare global {
+  interface Window {
+    daum?: {
+      Postcode: new (options: { oncomplete: (data: DaumPostcodeData) => void }) => {
+        open: () => void;
+      };
+    };
+  }
+}
 
 const getOrderStatusClassName = (status: OrderItem["status"]) => {
   const statusStyles: Record<OrderItem["status"], string> = {
@@ -53,6 +71,27 @@ const parseAccessDateTime = (value: string, edge: "start" | "end") => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
+const getDigitsOnly = (value: string) => value.replace(/\D/g, "");
+
+const formatKoreanPhoneNumber = (value: string) => {
+  const digits = getDigitsOnly(value).slice(0, 11);
+
+  if (digits.length <= 3) return digits;
+
+  if (digits.length <= 7) {
+    return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  }
+
+  const middleLength = digits.length === 10 ? 3 : 4;
+  const middleEnd = 3 + middleLength;
+  return `${digits.slice(0, 3)}-${digits.slice(3, middleEnd)}-${digits.slice(middleEnd)}`;
+};
+
+const isValidKoreanPhoneNumber = (value: string) => {
+  const digits = getDigitsOnly(value);
+  return /^(010\d{8}|01[16789]\d{7,8})$/.test(digits);
+};
+
 export default function Home() {
   const [data, setData] = useState<LandingData>(defaultLandingData);
   const [isLandingDataLoading, setIsLandingDataLoading] = useState(true);
@@ -73,7 +112,9 @@ export default function Home() {
   const [orderQueryResults, setOrderQueryResults] = useState<OrderItem[] | null>(null);
   const [orderSearchError, setOrderSearchError] = useState<string | null>(null);
   const [orderSubmitError, setOrderSubmitError] = useState<string | null>(null);
+  const [quantityLimitMessage, setQuantityLimitMessage] = useState<string | null>(null);
   const [isOrderSubmitting, setIsOrderSubmitting] = useState(false);
+  const [isAddressScriptReady, setIsAddressScriptReady] = useState(false);
   const [inviteCodeInput, setInviteCodeInput] = useState("");
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [savedInviteAccess, setSavedInviteAccess] = useState(readSavedInviteAccess);
@@ -86,6 +127,16 @@ export default function Home() {
       .finally(() => setIsLandingDataLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (!quantityLimitMessage) return;
+
+    const timerId = window.setTimeout(() => {
+      setQuantityLimitMessage(null);
+    }, 3000);
+
+    return () => window.clearTimeout(timerId);
+  }, [quantityLimitMessage]);
+
   const activeProducts = data.products.filter((product) => product.active !== false);
   const getStockQuantity = (product: LandingData["products"][number]) => Math.max(0, Number(product.stockQuantity) || 0);
   const getMaxOrderQuantity = (product: LandingData["products"][number]) =>
@@ -94,6 +145,11 @@ export default function Home() {
     Math.max(0, Math.min(getStockQuantity(product), getMaxOrderQuantity(product)));
   const getProductOptions = (product: LandingData["products"][number]) =>
     (product.optionValues || []).map((option) => option.trim()).filter(Boolean).slice(0, 10);
+  const getProductOrderGuide = (product: LandingData["products"][number]) => {
+    if (product.orderGuide?.trim()) return product.orderGuide.trim();
+    if (product.paymentMode === "external") return "외부 쇼핑몰 링크로 이동하여 구매를 진행합니다.";
+    return "이 상품은 내부 무통장 주문으로 처리됩니다. 주문 정보 입력 후 입금 안내를 받으세요.";
+  };
   const access = data.access || defaultLandingData.access;
   const display = data.display || defaultLandingData.display;
 
@@ -164,6 +220,7 @@ export default function Home() {
     });
     setCreatedOrder(null);
     setOrderSubmitError(null);
+    setQuantityLimitMessage(null);
   };
 
   const openOrderInquiry = () => {
@@ -182,8 +239,9 @@ export default function Home() {
 
   const searchOrders = async () => {
     const query = orderSearchInput.trim();
+    const phoneQuery = getDigitsOnly(query);
     if (!query) {
-      setOrderSearchError("주문번호 또는 휴대폰 번호를 입력하세요.");
+      setOrderSearchError("주문번호 또는 휴대폰 번호를 입력하세요. 휴대폰 번호는 숫자만 입력해주세요.");
       setOrderQueryResults(null);
       return;
     }
@@ -197,7 +255,10 @@ export default function Home() {
       return;
     }
 
-    const matched = orders.filter((order) => order.id.includes(query) || order.customerPhone.includes(query));
+    const matched = orders.filter((order) => {
+      const orderPhone = getDigitsOnly(order.customerPhone);
+      return order.id.includes(query) || (phoneQuery.length > 0 && orderPhone.includes(phoneQuery));
+    });
 
     if (!matched.length) {
       setOrderSearchError("검색 결과가 없습니다. 주문번호 또는 휴대폰 번호를 다시 확인해주세요.");
@@ -224,6 +285,7 @@ export default function Home() {
     setGalleryIndex(0);
     setCreatedOrder(null);
     setOrderSubmitError(null);
+    setQuantityLimitMessage(null);
     setOrderForm((prev) => ({
       ...prev,
       selectedOption: "",
@@ -243,10 +305,18 @@ export default function Home() {
       }));
 
       if (requestedQuantity > allowedQuantity) {
-        setOrderSubmitError(`최대 주문가능한 수량은 ${allowedQuantity}개 입니다.`);
+        setQuantityLimitMessage(`본 상품의 최대주문 가능수량은 ${allowedQuantity}개입니다.`);
       } else {
-        setOrderSubmitError(null);
+        setQuantityLimitMessage(null);
       }
+      return;
+    }
+
+    if (field === "customerPhone") {
+      setOrderForm((prev) => ({
+        ...prev,
+        customerPhone: getDigitsOnly(String(value)).slice(0, 11),
+      }));
       return;
     }
 
@@ -256,12 +326,48 @@ export default function Home() {
     }));
   };
 
+  const handleQuantityStep = (direction: "decrease" | "increase") => {
+    const currentQuantity = Number(orderForm.quantity) || 1;
+    handleOrderFormChange("quantity", currentQuantity + (direction === "increase" ? 1 : -1));
+  };
+
+  const handleAddressSearch = () => {
+    if (!window.daum?.Postcode) {
+      setOrderSubmitError("주소 찾기 서비스를 불러오는 중입니다. 잠시 후 다시 눌러주세요.");
+      return;
+    }
+
+    new window.daum.Postcode({
+      oncomplete: (addressData) => {
+        const selectedAddress = addressData.roadAddress || addressData.jibunAddress || addressData.address;
+        const formattedAddress = addressData.zonecode
+          ? `(${addressData.zonecode}) ${selectedAddress}`
+          : selectedAddress;
+
+        handleOrderFormChange("customerAddress", formattedAddress);
+        setOrderSubmitError(null);
+      },
+    }).open();
+  };
+
   const handleCreateOrder = async () => {
     if (!selectedProduct || isOrderSubmitting) return;
 
     const currentOptions = getProductOptions(selectedProduct);
-    if (!orderForm.customerName.trim() || !orderForm.customerPhone.trim() || !orderForm.customerAddress.trim()) {
-      setOrderSubmitError("이름, 휴대폰, 주소를 모두 입력해주세요.");
+    if (!orderForm.customerName.trim()) {
+      setOrderSubmitError("주문자 이름을 입력해주세요.");
+      return;
+    }
+    if (!orderForm.customerPhone.trim()) {
+      setOrderSubmitError("휴대폰 번호를 입력해주세요.");
+      return;
+    }
+    if (!isValidKoreanPhoneNumber(orderForm.customerPhone)) {
+      setOrderSubmitError("휴대폰 번호는 숫자 10~11자리로 입력해주세요.");
+      return;
+    }
+    if (!orderForm.customerAddress.trim()) {
+      setOrderSubmitError("주소 찾기로 배송지를 입력해주세요.");
       return;
     }
     if (currentOptions.length > 0 && !orderForm.selectedOption.trim()) {
@@ -288,7 +394,7 @@ export default function Home() {
           ...prev,
           quantity: allowedQuantity,
         }));
-        setOrderSubmitError(`최대 주문가능한 수량은 ${allowedQuantity}개 입니다.`);
+        setQuantityLimitMessage(`본 상품의 최대주문 가능수량은 ${allowedQuantity}개입니다.`);
         return;
       }
       const latestOptions = getProductOptions(latestProduct);
@@ -320,7 +426,7 @@ export default function Home() {
         quantity,
         totalPrice: totalAmount,
         customerName: orderForm.customerName.trim(),
-        customerPhone: orderForm.customerPhone.trim(),
+        customerPhone: getDigitsOnly(orderForm.customerPhone),
         customerAddress: orderForm.customerAddress.trim(),
         deliveryNote: orderForm.deliveryNote.trim(),
         status: "입금대기",
@@ -473,6 +579,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
+      <Script
+        src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"
+        strategy="afterInteractive"
+        onLoad={() => setIsAddressScriptReady(true)}
+        onError={() => setOrderSubmitError("주소 찾기 서비스를 불러오지 못했습니다. 주소를 직접 입력해주세요.")}
+      />
       <header
         className="relative flex min-h-[clamp(320px,101vw,400px)] items-center overflow-hidden px-6 py-8 sm:min-h-[520px] sm:px-12 sm:py-16 lg:min-h-[560px]"
         style={{
@@ -566,9 +678,9 @@ export default function Home() {
                       </span>
                     )}
                     <span className="block text-2xl font-semibold text-white">{product.price}</span>
-                    {(display.showStockQuantity || isSoldOut) && (
+                    {display.showStockQuantity && !isSoldOut && (
                       <span className="block text-xs text-white/50">
-                        {isSoldOut ? "품절" : `${getStockQuantity(product)}개 남음`}
+                        {getStockQuantity(product)}개 남음
                       </span>
                     )}
                   </div>
@@ -578,7 +690,7 @@ export default function Home() {
                     disabled={isSoldOut}
                     className="rounded-full border border-white/15 bg-white/5 px-5 py-3 text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:border-rose-300/20 disabled:bg-rose-500/10 disabled:text-rose-100 disabled:hover:bg-rose-500/10"
                   >
-                    {isSoldOut ? "품절되었습니다" : product.paymentMode === "external" ? "구매하러 가기" : "자세히 보기"}
+                    {isSoldOut ? "SOLD OUT" : product.paymentMode === "external" ? "구매하러 가기" : "자세히 보기"}
                   </button>
                 </div>
               </article>
@@ -588,11 +700,13 @@ export default function Home() {
       </main>
       {selectedProduct && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 p-0 sm:px-4 sm:py-8">
-          <div className="mx-auto min-h-[100dvh] w-full max-w-3xl overflow-hidden bg-zinc-950 shadow-2xl shadow-black/70 sm:min-h-0 sm:rounded-4xl">
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-zinc-950/95 px-5 py-4 backdrop-blur-xl sm:bg-zinc-900 sm:px-6">
+          <div className={`mx-auto min-h-[100dvh] w-full overflow-hidden bg-zinc-950 shadow-2xl shadow-black/70 sm:min-h-0 sm:rounded-4xl ${
+            modalStep === "detail" ? "max-w-[1120px]" : "max-w-3xl"
+          }`}>
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-zinc-950/95 px-5 py-2.5 backdrop-blur-xl sm:bg-zinc-900 sm:px-8 sm:py-3">
               <div className="min-w-0">
-                <p className="text-xs uppercase tracking-[0.22em] text-white/45 sm:tracking-[0.24em]">상품상세정보</p>
-                <h2 className="mt-2 line-clamp-2 text-2xl font-semibold leading-tight text-white sm:line-clamp-none">
+                <p className="text-[11px] uppercase tracking-[0.13em] text-white/45 sm:text-xs sm:tracking-[0.15em]">상품상세정보</p>
+                <h2 className="mt-0.5 line-clamp-2 text-2xl font-semibold leading-[1.05] text-white sm:line-clamp-none sm:text-[2rem]">
                   {selectedProduct.name}
                 </h2>
               </div>
@@ -604,25 +718,25 @@ export default function Home() {
                 닫기
               </button>
             </div>
-            <div className="space-y-5 p-5 sm:max-h-[calc(100vh-14rem)] sm:space-y-6 sm:overflow-y-auto sm:p-6">
+            <div className="space-y-3 p-3 sm:max-h-[calc(100vh-8rem)] sm:space-y-4 sm:overflow-y-auto sm:p-5">
               {modalStep === "detail" && (
-                <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-                  <div className="space-y-4">
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,700px)_minmax(320px,1fr)]">
+                  <div className="space-y-1">
                     {(() => {
                       const galleryItems = [selectedProduct.image, ...(selectedProduct.additionalImages || [])].filter(Boolean);
                       const currentImage = galleryItems[galleryIndex] || "";
 
                       return (
-                        <div className="space-y-4">
-                          <div className="relative">
+                        <div>
+                          <div className="product-detail-image-frame relative">
                             {currentImage ? (
                               <img
                                 src={currentImage}
                                 alt={selectedProduct.name}
-                                className="aspect-square w-full rounded-4xl object-cover"
+                                className="h-full w-full rounded-4xl object-cover"
                               />
                             ) : (
-                              <div className="flex aspect-square w-full items-center justify-center rounded-4xl bg-white/5 text-white/60">
+                              <div className="flex h-full w-full items-center justify-center rounded-4xl bg-white/5 text-white/60">
                                 이미지가 없습니다.
                               </div>
                             )}
@@ -659,13 +773,9 @@ export default function Home() {
                         </div>
                       );
                     })()}
-                    <div className="space-y-3 rounded-4xl bg-white/5 p-5">
-                      <p className="text-sm uppercase tracking-[0.18em] text-white/50">{selectedProduct.tag}</p>
-                      <p className="text-lg leading-8 text-white/75">{selectedProduct.description}</p>
-                    </div>
                   </div>
-                  <div className="space-y-6 rounded-4xl bg-white/5 p-6">
-                    <div>
+                  <div className="space-y-4 rounded-4xl bg-white/5 p-5">
+                    <div className="px-4">
                       <p className="text-sm text-white/50">가격</p>
                       {selectedProduct.initialPrice?.trim() && (
                         <p className="mt-2 text-sm font-medium text-white/45 line-through decoration-white/35 decoration-1">
@@ -683,14 +793,15 @@ export default function Home() {
                             : null}
                       </p>
                     </div>
-                    <div className="rounded-4xl bg-zinc-950/70 p-4 text-sm text-white/70">
-                      {selectedProduct.paymentMode === "bank-transfer" ? (
-                        <p>이 상품은 내부 무통장 주문으로 처리됩니다. 주문 정보 입력 후 입금 안내를 받으세요.</p>
-                      ) : selectedProduct.paymentLink ? (
-                        <p>외부 쇼핑몰 링크로 이동하여 구매를 진행합니다.</p>
-                      ) : (
-                        <p>외부 링크가 설정되지 않았습니다. 관리자에서 링크를 확인하세요.</p>
-                      )}
+                    <div className="rounded-3xl bg-zinc-950/60 px-4 py-3">
+                      <p className="text-sm leading-6 text-white/75">{selectedProduct.description}</p>
+                    </div>
+                    <div className="rounded-3xl bg-zinc-950/70 px-4 py-3 text-sm leading-6 text-white/70">
+                      <p>
+                        {selectedProduct.paymentMode === "external" && !selectedProduct.paymentLink
+                          ? "외부 링크가 설정되지 않았습니다. 관리자에서 링크를 확인하세요."
+                          : getProductOrderGuide(selectedProduct)}
+                      </p>
                     </div>
                     {selectedProduct.paymentMode === "bank-transfer" && getProductOptions(selectedProduct).length > 0 && (
                       <div className="rounded-3xl border border-white/10 bg-zinc-950/60 p-3">
@@ -721,7 +832,7 @@ export default function Home() {
                         </div>
                       </div>
                     )}
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-3 px-4">
                       {selectedProduct.paymentMode === "external" ? (
                         <a
                           href={selectedProduct.paymentLink || "#"}
@@ -753,57 +864,100 @@ export default function Home() {
                 </div>
               )}
               {modalStep === "orderForm" && (
-                <div className="space-y-6">
-                  <div className="rounded-4xl bg-white/5 p-6">
-                    <p className="text-sm text-white/50">주문 정보</p>
-                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div className="space-y-4">
+                  <div className="rounded-4xl bg-white/5 p-5 sm:p-6">
+                    <div>
+                      <p className="text-sm text-white/50">주문 정보</p>
+                      <p className="mt-1 text-xs text-white/40">필수 정보를 입력해야 주문이 저장됩니다.</p>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4">
                       <label className="space-y-2 text-sm text-white/80">
-                        이름
+                        이름 <span className="text-rose-200">*</span>
                         <input
                           type="text"
                           value={orderForm.customerName}
                           onChange={(event) => handleOrderFormChange("customerName", event.target.value)}
-                          className="w-full rounded-3xl border border-white/10 bg-zinc-950/50 px-4 py-3 text-white outline-none transition focus:border-white/30"
+                          placeholder="주문자명"
+                          className="w-full rounded-2xl border border-white/10 bg-zinc-950/50 px-4 py-3 text-white outline-none transition placeholder:text-white/25 focus:border-white/30"
                         />
                       </label>
                       <label className="space-y-2 text-sm text-white/80">
-                        휴대폰
+                        <span className="flex items-center justify-between gap-3">
+                          <span>휴대폰 <span className="text-rose-200">*</span></span>
+                          <span className="text-xs text-white/40">숫자만 입력해주세요</span>
+                        </span>
                         <input
                           type="tel"
-                          value={orderForm.customerPhone}
+                          inputMode="numeric"
+                          value={formatKoreanPhoneNumber(orderForm.customerPhone)}
                           onChange={(event) => handleOrderFormChange("customerPhone", event.target.value)}
-                          className="w-full rounded-3xl border border-white/10 bg-zinc-950/50 px-4 py-3 text-white outline-none transition focus:border-white/30"
+                          placeholder="010-1234-5678"
+                          className="w-full rounded-2xl border border-white/10 bg-zinc-950/50 px-4 py-3 text-white outline-none transition placeholder:text-white/25 focus:border-white/30"
                         />
                       </label>
-                      <label className="space-y-2 text-sm text-white/80 sm:col-span-2">
-                        주소
+                      <div className="space-y-2 text-sm text-white/80 sm:col-span-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <span>주소 <span className="text-rose-200">*</span></span>
+                          <button
+                            type="button"
+                            onClick={handleAddressSearch}
+                            disabled={!isAddressScriptReady}
+                            className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/15 disabled:cursor-wait disabled:opacity-50"
+                          >
+                            주소 찾기
+                          </button>
+                        </div>
                         <input
                           type="text"
                           value={orderForm.customerAddress}
                           onChange={(event) => handleOrderFormChange("customerAddress", event.target.value)}
-                          className="w-full rounded-3xl border border-white/10 bg-zinc-950/50 px-4 py-3 text-white outline-none transition focus:border-white/30"
+                          placeholder="주소 찾기 후 상세주소를 이어서 입력"
+                          className="w-full rounded-2xl border border-white/10 bg-zinc-950/50 px-4 py-3 text-white outline-none transition placeholder:text-white/25 focus:border-white/30"
                         />
-                      </label>
-                      <label className="space-y-2 text-sm text-white/80">
-                        수량
-                        <input
-                          type="number"
-                          min={1}
-                          max={selectedProduct ? getAllowedOrderQuantity(selectedProduct) : 1}
-                          value={orderForm.quantity}
-                          onChange={(event) => handleOrderFormChange("quantity", Number(event.target.value))}
-                          className="w-full rounded-3xl border border-white/10 bg-zinc-950/50 px-4 py-3 text-white outline-none transition focus:border-white/30"
-                        />
-                        {selectedProduct && (
-                          <span className="block text-xs text-white/45">
-                            최대 {getAllowedOrderQuantity(selectedProduct)}개까지 주문할 수 있습니다.
-                          </span>
-                        )}
-                      </label>
+                      </div>
+                      <div className="space-y-2 text-sm text-white/80 sm:col-span-2">
+                        <span>수량</span>
+                        <div className="grid gap-2 sm:grid-cols-[minmax(240px,0.48fr)_1fr] sm:items-center">
+                          <div className="flex h-12 items-center justify-between rounded-2xl border border-white/10 bg-zinc-950/50 px-2">
+                            <button
+                              type="button"
+                              onClick={() => handleQuantityStep("decrease")}
+                              disabled={orderForm.quantity <= 1}
+                              aria-label="수량 줄이기"
+                              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-xl leading-none text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35"
+                            >
+                              -
+                            </button>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              value={orderForm.quantity}
+                              onChange={(event) => handleOrderFormChange("quantity", event.target.value.replace(/\D/g, ""))}
+                              className="h-full w-16 bg-transparent text-center text-base font-semibold text-white outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleQuantityStep("increase")}
+                              aria-label="수량 늘리기"
+                              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-xl leading-none text-white transition hover:bg-white/10"
+                            >
+                              +
+                            </button>
+                          </div>
+                          <div className="min-h-5">
+                            {quantityLimitMessage && (
+                              <p className="text-xs font-medium text-amber-200 sm:text-sm">
+                                {quantityLimitMessage}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                       {selectedProduct && getProductOptions(selectedProduct).length > 0 && (
                         <div className="space-y-2 sm:col-span-2">
                           <p className="text-sm text-white/80">주문 옵션 · {selectedProduct.optionName || "옵션"}</p>
-                          <div className="rounded-3xl border border-white/10 bg-zinc-950/50 px-4 py-3">
+                          <div className="rounded-2xl border border-white/10 bg-zinc-950/50 px-4 py-3">
                             <p className="text-xs text-white/45">선택한 옵션</p>
                             <p className="mt-1 break-words text-base font-semibold text-white">
                               {orderForm.selectedOption || "선택된 옵션이 없습니다."}
@@ -815,10 +969,11 @@ export default function Home() {
                       <label className="space-y-2 text-sm text-white/80 sm:col-span-2">
                         배송 메모
                         <textarea
-                          rows={3}
+                          rows={2}
                           value={orderForm.deliveryNote}
                           onChange={(event) => handleOrderFormChange("deliveryNote", event.target.value)}
-                          className="w-full rounded-3xl border border-white/10 bg-zinc-950/50 px-4 py-3 text-white outline-none transition focus:border-white/30"
+                          placeholder="공동현관 비밀번호 등"
+                          className="w-full rounded-2xl border border-white/10 bg-zinc-950/50 px-4 py-3 text-white outline-none transition placeholder:text-white/25 focus:border-white/30"
                         />
                       </label>
                     </div>
@@ -911,7 +1066,10 @@ export default function Home() {
                 <p className="text-sm text-white/50">조회 정보</p>
                 <div className="mt-4 grid gap-4 sm:grid-cols-[1.5fr_0.9fr]">
                   <label className="space-y-2 text-sm text-white/80 sm:col-span-2">
-                    주문번호 또는 휴대폰 번호
+                    <span className="flex flex-wrap items-center justify-between gap-2">
+                      <span>주문번호 또는 휴대폰 번호</span>
+                      <span className="text-xs text-white/40">휴대폰 번호는 숫자만 입력해주세요.</span>
+                    </span>
                     <input
                       type="text"
                       value={orderSearchInput}

@@ -223,6 +223,7 @@ export default function AdminPage() {
           optionName: "",
           optionValues: [],
           paymentMode: "bank-transfer",
+          orderGuide: "이 상품은 내부 무통장 주문으로 처리됩니다. 주문 정보 입력 후 입금 안내를 받으세요.",
           additionalImages: [],
           active: true,
         },
@@ -964,6 +965,17 @@ export default function AdminPage() {
                                   value={product.description}
                                   onChange={(event) => updateProductField(index, "description", event.target.value)}
                                   className="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-white/30"
+                                />
+                              </label>
+
+                              <label className="space-y-1 text-sm text-white/80">
+                                <span className="text-xs">주문 안내 멘트</span>
+                                <textarea
+                                  rows={2}
+                                  value={product.orderGuide || ""}
+                                  onChange={(event) => updateProductField(index, "orderGuide", event.target.value)}
+                                  className="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-white/30"
+                                  placeholder="상세 팝업에서 가격 아래에 노출될 주문 안내 문구"
                                 />
                               </label>
 

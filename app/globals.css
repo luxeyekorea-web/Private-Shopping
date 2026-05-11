@@ -23,6 +23,34 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  scrollbar-color: #3f3f46 #09090b;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #09090b;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 999px;
+  border: 2px solid #09090b;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+.product-detail-image-frame {
+  width: min(100%, 700px);
+  max-width: 700px;
+  aspect-ratio: 1 / 1;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .landing-hero-image {

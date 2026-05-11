@@ -15,6 +15,7 @@ export type ProductItem = {
   optionValues: string[];
   paymentLink?: string;
   paymentMode: "external" | "bank-transfer";
+  orderGuide?: string;
   additionalImages: string[];
   imageKey?: string;
   additionalImageKeys?: (string | null)[];
@@ -115,7 +116,15 @@ function normalizeProductId(value: string, fallbackIndex: number) {
   return productId || createProductId(fallbackIndex);
 }
 
-function normalizeProducts(products: ProductItem[]) {
+function getDefaultOrderGuide(paymentMode: ProductItem["paymentMode"]) {
+  if (paymentMode === "external") {
+    return "외부 쇼핑몰 링크로 이동하여 구매를 진행합니다.";
+  }
+
+  return "이 상품은 내부 무통장 주문으로 처리됩니다. 주문 정보 입력 후 입금 안내를 받으세요.";
+}
+
+function normalizeProducts(products: ProductItem[]): ProductItem[] {
   const usedIds = new Set<string>();
 
   return products.map((product, index) => {
@@ -135,6 +144,8 @@ function normalizeProducts(products: ProductItem[]) {
         ? Math.max(1, Number(product.maxOrderQuantity))
         : 1,
       optionName: typeof product.optionName === "string" ? product.optionName : "",
+      paymentMode: product.paymentMode === "external" ? "external" : "bank-transfer",
+      orderGuide: typeof product.orderGuide === "string" ? product.orderGuide : getDefaultOrderGuide(product.paymentMode),
       optionValues: Array.isArray(product.optionValues)
         ? product.optionValues
             .filter((option) => typeof option === "string")
@@ -281,6 +292,7 @@ export const defaultLandingData: LandingData = {
       optionName: "",
       optionValues: [],
       paymentMode: "bank-transfer",
+      orderGuide: getDefaultOrderGuide("bank-transfer"),
       additionalImages: [],
       active: true,
     },
@@ -297,6 +309,7 @@ export const defaultLandingData: LandingData = {
       optionName: "",
       optionValues: [],
       paymentMode: "bank-transfer",
+      orderGuide: getDefaultOrderGuide("bank-transfer"),
       additionalImages: [],
       active: true,
     },
@@ -313,6 +326,7 @@ export const defaultLandingData: LandingData = {
       optionName: "",
       optionValues: [],
       paymentMode: "bank-transfer",
+      orderGuide: getDefaultOrderGuide("bank-transfer"),
       additionalImages: [],
       active: true,
     },
@@ -329,6 +343,7 @@ export const defaultLandingData: LandingData = {
       optionName: "",
       optionValues: [],
       paymentMode: "bank-transfer",
+      orderGuide: getDefaultOrderGuide("bank-transfer"),
       additionalImages: [],
       active: true,
     },
@@ -345,6 +360,7 @@ export const defaultLandingData: LandingData = {
       optionName: "",
       optionValues: [],
       paymentMode: "bank-transfer",
+      orderGuide: getDefaultOrderGuide("bank-transfer"),
       additionalImages: [],
       active: true,
     },
@@ -361,6 +377,7 @@ export const defaultLandingData: LandingData = {
       optionName: "",
       optionValues: [],
       paymentMode: "bank-transfer",
+      orderGuide: getDefaultOrderGuide("bank-transfer"),
       additionalImages: [],
       active: true,
     },
