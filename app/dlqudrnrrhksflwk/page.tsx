@@ -465,7 +465,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 px-6 py-8 text-white sm:px-10">
+    <div className="min-h-screen bg-zinc-950 px-4 py-4 text-white sm:px-10 sm:py-8">
       {(isSaving || saved || saveError) && (
         <div
           className={`fixed right-4 top-4 z-[100] max-w-sm rounded-3xl border px-5 py-4 text-sm font-semibold shadow-2xl shadow-black/40 backdrop-blur sm:right-8 sm:top-8 ${
@@ -479,20 +479,20 @@ export default function AdminPage() {
           {isSaving ? "저장 중입니다. 이미지 업로드가 끝날 때까지 기다려주세요." : saved ? "변경 내용이 저장되었습니다." : saveError}
         </div>
       )}
-      <div className="mx-auto max-w-5xl space-y-6">
-        <div className="rounded-4xl border border-white/10 bg-white/5 p-6 shadow-2xl shadow-black/30 sm:p-8">
-          <div className="mb-8 sticky top-6 z-50 rounded-4xl bg-zinc-950/95 p-5 backdrop-blur-xl shadow-2xl shadow-black/30">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto max-w-5xl space-y-4 sm:space-y-6">
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl shadow-black/30 sm:rounded-4xl sm:p-8">
+          <div className="sticky top-2 z-50 mb-5 rounded-3xl bg-zinc-950/95 p-4 shadow-2xl shadow-black/30 backdrop-blur-xl sm:top-6 sm:mb-8 sm:rounded-4xl sm:p-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
               <div>
-                <p className="text-sm uppercase tracking-[0.28em] text-white/50">관리자 페이지</p>
-                <h1 className="mt-3 text-2xl font-semibold leading-tight sm:text-3xl">
+                <p className="text-xs uppercase tracking-[0.22em] text-white/50 sm:text-sm sm:tracking-[0.28em]">관리자 페이지</p>
+                <h1 className="mt-2 text-xl font-semibold leading-tight sm:mt-3 sm:text-3xl">
                   랜딩 페이지 컨텐츠 편집
                 </h1>
               </div>
-              <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="grid grid-cols-2 gap-2 lg:flex lg:flex-row lg:gap-3">
                 <Link
                   href="/dlqudrnrrhksflwk/orders"
-                  className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                  className="col-span-2 inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-white/10 lg:col-span-1 lg:px-5 lg:py-3 lg:text-sm"
                 >
                   주문 관리 페이지로 이동
                 </Link>
@@ -500,7 +500,7 @@ export default function AdminPage() {
                   type="button"
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="inline-flex min-w-30 cursor-pointer items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-100 hover:cursor-pointer disabled:cursor-wait disabled:bg-white/30 disabled:text-white/50"
+                  className="inline-flex min-w-0 cursor-pointer items-center justify-center rounded-full bg-white px-3 py-2.5 text-xs font-semibold text-zinc-950 transition hover:cursor-pointer hover:bg-zinc-100 disabled:cursor-wait disabled:bg-white/30 disabled:text-white/50 lg:min-w-30 lg:px-5 lg:py-3 lg:text-sm"
                 >
                   {isSaving ? "저장 중..." : hasUnsavedChanges ? "변경사항 저장" : "저장하기"}
                 </button>
@@ -508,7 +508,7 @@ export default function AdminPage() {
                   type="button"
                   onClick={handleReset}
                   disabled={isSaving}
-                  className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50 lg:px-5 lg:py-3 lg:text-sm"
                 >
                   기본값 복원
                 </button>
@@ -516,26 +516,26 @@ export default function AdminPage() {
             </div>
 
             {hasUnsavedChanges && !isSaving && (
-              <div className="mt-5 rounded-3xl border border-amber-300/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+              <div className="mt-3 rounded-2xl border border-amber-300/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100 sm:mt-5 sm:rounded-3xl sm:px-4 sm:py-3 sm:text-sm">
                 저장하지 않은 변경사항이 있습니다.
               </div>
             )}
             {saved && (
-              <div className="mt-5 rounded-3xl border border-emerald-300/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+              <div className="mt-3 rounded-2xl border border-emerald-300/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200 sm:mt-5 sm:rounded-3xl sm:px-4 sm:py-3 sm:text-sm">
                 변경 내용이 저장되었습니다.
               </div>
             )}
             {saveError && (
-              <div className="mt-5 rounded-3xl border border-rose-300/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+              <div className="mt-3 rounded-2xl border border-rose-300/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200 sm:mt-5 sm:rounded-3xl sm:px-4 sm:py-3 sm:text-sm">
                 {saveError}
               </div>
             )}
           </div>
 
-          <section className="space-y-6">
-            <div className="rounded-4xl border border-white/10 bg-zinc-950/30 p-6">
+          <section className="space-y-4 sm:space-y-6">
+            <div className="rounded-3xl border border-white/10 bg-zinc-950/30 p-4 sm:rounded-4xl sm:p-6">
               <h2
-                className="text-xl font-semibold cursor-pointer"
+                className="cursor-pointer text-lg font-semibold sm:text-xl"
                 onClick={() => setSectionsOpen((prev) => ({ ...prev, banner: !prev.banner }))}
               >
                 배너 / CTA 설정 {sectionsOpen.banner ? "▼" : "▶"}
@@ -635,9 +635,9 @@ export default function AdminPage() {
               )}
             </div>
 
-            <div className="rounded-4xl border border-white/10 bg-zinc-950/30 p-6">
+            <div className="rounded-3xl border border-white/10 bg-zinc-950/30 p-4 sm:rounded-4xl sm:p-6">
               <h2
-                className="text-xl font-semibold cursor-pointer"
+                className="cursor-pointer text-lg font-semibold sm:text-xl"
                 onClick={() => setSectionsOpen((prev) => ({ ...prev, access: !prev.access }))}
               >
                 접근 설정 {sectionsOpen.access ? "▼" : "▶"}
@@ -745,22 +745,22 @@ export default function AdminPage() {
               )}
             </div>
 
-            <div className="rounded-4xl border border-white/10 bg-zinc-950/30 p-6">
-              <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="rounded-3xl border border-white/10 bg-zinc-950/30 p-4 sm:rounded-4xl sm:p-6">
+              <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                 <div>
                   <h2
-                    className="text-xl font-semibold cursor-pointer"
+                    className="cursor-pointer text-lg font-semibold sm:text-xl"
                     onClick={() => setSectionsOpen((prev) => ({ ...prev, products: !prev.products }))}
                   >
                     상품 목록 {sectionsOpen.products ? "▼" : "▶"}
                   </h2>
-                  <p className="text-sm text-white/60">
+                  <p className="mt-1 text-sm leading-6 text-white/60 sm:mt-0">
                     {sectionsOpen.products
                       ? "버튼으로 순서를 변경하고, 복제/삭제가 가능합니다."
                       : `총 ${data.products.length}개 상품, 활성 ${activeProductCount}개입니다. 상품 이미지, 가격, 재고, 최대 주문수량을 관리합니다.`}
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <button
                     type="button"
                     onClick={addProduct}
@@ -777,34 +777,49 @@ export default function AdminPage() {
                     const isExpanded = expandedProduct === product.id;
                     const isSoldOut = Math.max(0, Number(product.stockQuantity) || 0) <= 0;
                     return (
-                      <div key={product.id} className={`rounded-3xl border bg-white/5 overflow-hidden transition ${isSoldOut ? "border-rose-300/20" : "border-white/10"}`}>
+                      <div key={product.id} className={`overflow-hidden rounded-3xl border bg-white/5 transition ${isSoldOut ? "border-rose-300/20" : "border-white/10"}`}>
                         <div
-                          className="flex items-center gap-3 justify-between p-3 transition hover:bg-white/10 sm:p-4"
+                          className="flex flex-col gap-3 p-3 transition hover:bg-white/10 sm:p-4 lg:flex-row lg:items-center lg:justify-between"
                         >
-                          <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onClick={() => toggleProductExpand(product.id)}>
+                          <div className="flex w-full min-w-0 flex-1 cursor-pointer items-center gap-3 lg:w-auto" onClick={() => toggleProductExpand(product.id)}>
                             {product.image && (
                               <img
                                 src={product.image}
                                 alt={product.name}
-                                className="h-16 w-16 rounded-2xl object-cover shrink-0"
+                                className="h-12 w-12 shrink-0 rounded-2xl object-cover sm:h-16 sm:w-16"
                               />
                             )}
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2">
-                                <h3 className="font-semibold text-white truncate">{product.name}</h3>
+                                <h3 className="truncate text-sm font-semibold text-white sm:text-base">{product.name}</h3>
                                 {isSoldOut && (
                                   <span className="rounded-full border border-rose-300/30 bg-rose-500/15 px-2 py-0.5 text-[10px] font-semibold text-rose-100">
                                     품절
                                   </span>
                                 )}
                               </div>
-                              <p className="mt-1 text-xs text-white/50">
+                              <div className="mt-2 flex flex-wrap gap-1.5 lg:hidden">
+                                <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] text-white/60">{product.tag}</span>
+                                {product.initialPrice && (
+                                  <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] text-white/45 line-through decoration-white/35">
+                                    {product.initialPrice}
+                                  </span>
+                                )}
+                                <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-semibold text-white/80">{product.price}</span>
+                                <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] text-white/60">
+                                  {isSoldOut ? "품절" : `${Math.max(0, Number(product.stockQuantity) || 0)}개 남음`}
+                                </span>
+                                <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] text-white/60">
+                                  최대 {Math.max(1, Number(product.maxOrderQuantity) || 1)}개
+                                </span>
+                              </div>
+                              <p className="mt-1 hidden text-xs text-white/50 lg:block">
                                 {product.tag} · {product.initialPrice ? `${product.initialPrice} → ` : ""}{product.price} · {isSoldOut ? "품절" : `${Math.max(0, Number(product.stockQuantity) || 0)}개 남음`} · 최대 {Math.max(1, Number(product.maxOrderQuantity) || 1)}개
                               </p>
                             </div>
                           </div>
 
-                          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                          <div className="flex w-full shrink-0 flex-wrap items-center gap-2 border-t border-white/10 pt-3 lg:w-auto lg:justify-end lg:border-t-0 lg:pt-0">
                             <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] text-white/60">
                               {index + 1}
                             </span>
@@ -815,7 +830,7 @@ export default function AdminPage() {
                                 moveProductBy(index, -1);
                               }}
                               disabled={index === 0}
-                              className="rounded-full border border-white/15 bg-white/5 px-2 py-1 text-xs text-white transition hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                              className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border border-white/15 bg-white/5 px-2 text-xs text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 lg:h-auto lg:min-w-0 lg:py-1"
                             >
                               ↑
                             </button>
@@ -826,7 +841,7 @@ export default function AdminPage() {
                                 moveProductBy(index, 1);
                               }}
                               disabled={index === data.products.length - 1}
-                              className="rounded-full border border-white/15 bg-white/5 px-2 py-1 text-xs text-white transition hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                              className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border border-white/15 bg-white/5 px-2 text-xs text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 lg:h-auto lg:min-w-0 lg:py-1"
                             >
                               ↓
                             </button>
@@ -865,17 +880,17 @@ export default function AdminPage() {
                             <button
                               type="button"
                               onClick={() => toggleProductExpand(product.id)}
-                              className="ml-1"
+                              className="ml-auto lg:ml-1"
                             >
-                              <span className={`text-2xl transition ${expandedProduct === product.id ? "rotate-180" : ""}`}>▼</span>
+                              <span className={`text-base transition lg:text-2xl ${expandedProduct === product.id ? "rotate-180" : ""}`}>▼</span>
                             </button>
                           </div>
                         </div>
 
                         {isExpanded && (
-                          <div className="border-t border-white/10 bg-zinc-950/50 p-4 space-y-4">
+                          <div className="space-y-4 border-t border-white/10 bg-zinc-950/50 p-3 sm:p-4">
                             <div className="space-y-4">
-                              <div className="grid gap-3 sm:grid-cols-6">
+                              <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
                                 <label className="space-y-1 text-sm text-white/80">
                                   <span className="text-xs">태그</span>
                                   <input
@@ -885,7 +900,7 @@ export default function AdminPage() {
                                     className="w-full rounded-2xl border border-white/10 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-white/30"
                                   />
                                 </label>
-                                <label className="space-y-1 text-sm text-white/80">
+                                <label className="col-span-2 space-y-1 text-sm text-white/80 sm:col-span-1">
                                   <span className="text-xs">상품명</span>
                                   <input
                                     type="text"
@@ -1146,15 +1161,15 @@ export default function AdminPage() {
               )}
             </div>
 
-            <div className="rounded-4xl border border-white/10 bg-zinc-950/30 p-6">
-              <div className="mb-6">
+            <div className="rounded-3xl border border-white/10 bg-zinc-950/30 p-4 sm:rounded-4xl sm:p-6">
+              <div className="mb-4 sm:mb-6">
                 <h2
-                  className="text-xl font-semibold cursor-pointer"
+                  className="cursor-pointer text-lg font-semibold sm:text-xl"
                   onClick={() => setSectionsOpen((prev) => ({ ...prev, footer: !prev.footer }))}
                 >
                   푸터 정보 {sectionsOpen.footer ? "▼" : "▶"}
                 </h2>
-                <p className="text-sm text-white/60">
+                <p className="mt-1 text-sm leading-6 text-white/60">
                   {sectionsOpen.footer
                     ? "하단 사업자 정보와 고객센터 정보를 입력하세요."
                     : "랜딩페이지 하단에 노출되는 회사 정보, 고객센터, 무통장 입금 계좌를 관리합니다."}
@@ -1342,10 +1357,10 @@ export default function AdminPage() {
               )}
             </div>
 
-            <div className="rounded-4xl border border-white/10 bg-zinc-950/30 p-6">
-              <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div className="rounded-3xl border border-white/10 bg-zinc-950/30 p-4 sm:rounded-4xl sm:p-6">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 sm:mb-6 sm:gap-4">
                 <h2
-                  className="text-xl font-semibold cursor-pointer"
+                  className="cursor-pointer text-lg font-semibold sm:text-xl"
                   onClick={() => setSectionsOpen((prev) => ({ ...prev, backup: !prev.backup }))}
                 >
                   데이터 백업 / 복원 {sectionsOpen.backup ? "▼" : "▶"}
@@ -1355,7 +1370,7 @@ export default function AdminPage() {
                     현재 설정을 JSON으로 보관하거나, 백업한 JSON을 다시 가져옵니다.
                   </p>
                 )}
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <button
                     type="button"
                     onClick={handleExportCopy}
@@ -1400,20 +1415,20 @@ export default function AdminPage() {
               )}
             </div>
 
-            <div className="rounded-4xl border border-white/10 bg-zinc-950/30 p-6">
-              <h2 className="text-xl font-semibold">관리 요약</h2>
-              <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                <div className="rounded-3xl bg-white/5 p-4 text-sm text-white/80">
-                  <p className="text-xs uppercase tracking-[0.25em] text-white/50">상품 총 개수</p>
-                  <p className="mt-3 text-2xl font-semibold text-white">{data.products.length}</p>
+            <div className="rounded-3xl border border-white/10 bg-zinc-950/30 p-4 sm:rounded-4xl sm:p-6">
+              <h2 className="text-lg font-semibold sm:text-xl">관리 요약</h2>
+              <div className="mt-3 grid gap-3 sm:mt-4 sm:grid-cols-3 sm:gap-4">
+                <div className="flex items-center justify-between rounded-2xl bg-white/5 p-3 text-sm text-white/80 sm:block sm:rounded-3xl sm:p-4">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/50 sm:text-xs sm:tracking-[0.25em]">상품 총 개수</p>
+                  <p className="text-xl font-semibold text-white sm:mt-3 sm:text-2xl">{data.products.length}</p>
                 </div>
-                <div className="rounded-3xl bg-white/5 p-4 text-sm text-white/80">
-                  <p className="text-xs uppercase tracking-[0.25em] text-white/50">활성 상품</p>
-                  <p className="mt-3 text-2xl font-semibold text-white">{activeProductCount}</p>
+                <div className="flex items-center justify-between rounded-2xl bg-white/5 p-3 text-sm text-white/80 sm:block sm:rounded-3xl sm:p-4">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/50 sm:text-xs sm:tracking-[0.25em]">활성 상품</p>
+                  <p className="text-xl font-semibold text-white sm:mt-3 sm:text-2xl">{activeProductCount}</p>
                 </div>
-                <div className="rounded-3xl bg-white/5 p-4 text-sm text-white/80">
-                  <p className="text-xs uppercase tracking-[0.25em] text-white/50">저장된 데이터 크기</p>
-                  <p className="mt-3 text-2xl font-semibold text-white">{JSON.stringify(data).length} bytes</p>
+                <div className="flex items-center justify-between gap-4 rounded-2xl bg-white/5 p-3 text-sm text-white/80 sm:block sm:rounded-3xl sm:p-4">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/50 sm:text-xs sm:tracking-[0.25em]">저장된 데이터 크기</p>
+                  <p className="shrink-0 text-xl font-semibold text-white sm:mt-3 sm:text-2xl">{JSON.stringify(data).length} bytes</p>
                 </div>
               </div>
             </div>
